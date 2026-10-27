@@ -61,20 +61,62 @@ and `InvestigationWorkflow` in Python, `StpWorkflow` in Java), 1 grandchild
 (`VendorDispatchWorkflow`, Java). Only the parent changes a claim's track; every track visit starts a
 new child. MANUAL, SIU, ESCALATION and CLOSED are parent states, decided by an adjuster Update.
 
-## Quick start
+## Getting started
 
-**Prerequisites: Docker and `make` only.** Give the Docker VM ≥ 6 GB (≥ 10 GB with ELK).
+**You need:** Docker Desktop (or Docker Engine) with Compose v2 (`docker compose version`), `make`,
+and git. No Java, Maven or Python. Give Docker at least **6 GB** of memory (Docker Desktop →
+Settings → Resources), or 10 GB if you also start ELK. macOS: `make` comes with the Xcode command
+line tools (`xcode-select --install`). Windows: run everything inside WSL2.
+
+**Ports used on your machine:** 8233 (Temporal UI), 17233 (Temporal), 15432 (Postgres), 8090 (mock
+data), 8085 (event bridge); 9200 and 5601 only with ELK. If one is taken, change it in `.env`
+(created from `.env.example` on the first `make up`).
 
 ```bash
-make up           # build + start Temporal, Java + Python apps, mock data, Postgres; promote worker versions
-make q1           # … make q7: one answer at a time   |   make questions: all seven (~8 min)
-make demo         # all 6 scripted claims end to end, every outcome checked (~2 min)
-make help         # every target
+git clone git@github.com:keerthir-ti/-claims-temporal-reference.git claims-temporal-reference
+cd claims-temporal-reference
+make up           # first run 5–10 min (downloads images, Maven and pip packages); later runs ~1 min
+make ps           # every service "Up"; temporal and postgres "healthy"
+make demo         # 6 scripted claims end to end: expect 6 × PASS (~2 min)
 ```
 
-Temporal UI: <http://localhost:8233> (search `ClaimId STARTS_WITH "CLM-1003"` to see the parent and
-its children). ELK: `make elk-up`, then Kibana on <http://localhost:5601>. On a small machine run
-`make elk-down` before `make demo` or `make loadtest`.
+`make up` ends by printing four `current version … -> v1` lines and the URLs. If you see those and
+`make demo` prints 6 × PASS, everything works. `make help` lists every target.
+
+Temporal UI: <http://localhost:8233>. Search `ClaimId STARTS_WITH "CLM-1003"` to see a claim's
+parent and child workflows. ELK: `make elk-up`, then Kibana on <http://localhost:5601>
+(3–5 min to start). On a laptop with less than 10 GB for Docker, keep ELK off while demoing.
+
+## Presenting the demo (about 25 minutes)
+
+Run `make up` and `make demo` once beforehand so images are built and the stack is warm. During the
+session keep the Temporal UI open next to the terminal; every walkthrough prints its claim ids.
+
+| Step | Run | What to point out |
+|---|---|---|
+| 1 | Open this README | The question table above and the repository layout: workflows and workers are the deliverable, external systems are mocked in `activities/mock/` only |
+| 2 | `make q1` | One thin parent, a new child per track visit (shown in the executions list), and a stale write rejected with 409 by the system of record |
+| 3 | `make q2` (~2 min) | Claim stays open during the reopen window; a later reopen starts a new run with the same Workflow ID and continues at stage 7, not 1 |
+| 4 | `make q3` | Business history rows, each linked to its workflow and run ID |
+| 5 | `make q4` | Duplicate event kept once, stray event dead-lettered, invalid approval rejected, retried approval applied once |
+| 6 | `make q5` | A message from a newer version still decodes; Java state read from Python |
+| 7 | `make q6` | Cosmetic change ignored, injury causes re-triage, lost estimate event recovered by the backstop poll |
+| 8 | `make q7` | Same STP code, different flow per claim type; estimate over the limit handed to a person |
+| 9 | [docs/SOLUTIONS.md](docs/SOLUTIONS.md) | What was changed or added compared with the proposal, question by question |
+
+Optional extras: `make loadtest CLAIMS=300 RATE=30` (surge with injected failures), `make test`
+(both test suites), and the interactive commands below for live questions from the audience.
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `make up` fails with "port is already allocated" | Another service uses one of the ports above | Change the port in `.env` and run `make up` again |
+| Claims stay in TSA and never move | Worker versions were not promoted | `docker compose run --rm deploy-setup` |
+| Every claim shows `state=None` or the demo times out | Docker is out of memory (often because ELK is running) | `make elk-down`, or give Docker more memory, then retry |
+| A claim in progress suddenly goes to MANUAL | The `mock-data` container was restarted and lost its in-memory data | File a new claim (`make seed`); don't restart `mock-data` during a demo |
+| `make q1` … `q7` cannot connect | The stack is not running | `make ps`, then `make up` |
+| Start completely fresh | — | `make clean && make up` |
 
 Interactive commands (`make seed FIXTURE=CLM-1002` prints a fresh claim id):
 
