@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "claimId": "CLM-1003",
+  "track": "IS",
+  "stageVersion": 2,
+  "reason": "rule coverage-uncertain",
+  "bufferedEvents": [
+    { "schemaVersion": 1, "eventId": "e-1", "claimId": "CLM-1003", "eventType": "DOCUMENT_RECEIVED" }
+  ],
+  "settings": {
+    "tsaEnabled": true,
+    "isEnabled": true,
+    "maxRetriage": 3,
+    "manualSlaSeconds": 300,
+    "reopenWindowSeconds": 120,
+    "eventWaitSeconds": 60,
+    "revalidateIntervalSeconds": 15,
+    "continueAsNewEventThreshold": 10000
+  }
+}

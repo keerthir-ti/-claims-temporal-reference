@@ -1,0 +1,40 @@
+# Local configuration and secrets (copy .env.example to .env)
+.env
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+
+# Java / Maven (generated contract classes are rebuilt from contracts/schema)
+java/target/
+target/
+dependency-reduced-pom.xml
+*.class
+
+# IDEs and editors (VS Code, IntelliJ, Eclipse / VS Code Java extension)
+.vscode/
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+.factorypath
+bin/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs and generated documents
+*.log
+*.pdf

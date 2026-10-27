@@ -1,0 +1,22 @@
+id: home-default
+version: 1
+match:
+  lob: HOME
+authorityLimitCents: 2000000
+stages:
+  - name: contact
+    steps: [INITIAL_CONTACT]
+  - name: coverage
+    steps: [VERIFY_COVERAGE]
+  - name: reserve
+    steps: [OPEN_RESERVE]
+  - name: inspection
+    steps: [ASSIGN_APPRAISAL]
+  - name: estimate
+    steps: [AWAIT_ESTIMATE]
+  - name: pay
+    steps: [ISSUE_PAYMENT]
+  - name: settle
+    steps: [FINALIZE_PAYMENT]
+  - name: close
+    steps: [CLOSE_CLAIM]

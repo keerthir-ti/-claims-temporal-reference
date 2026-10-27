@@ -1,0 +1,13 @@
+<configuration>
+  <!-- JSON lines on stdout. Temporal puts WorkflowId, RunId, WorkflowType, TaskQueue, ActivityType,
+       Attempt into the MDC; Filebeat ships them to Elasticsearch next to the Python workers' logs,
+       which use the same field names. -->
+  <appender name="OUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+      <customFields>{"service":"${SERVICE_NAME:-claims-java}","language":"java"}</customFields>
+    </encoder>
+  </appender>
+  <logger name="io.grpc" level="WARN"/>
+  <logger name="io.temporal" level="INFO"/>
+  <root level="INFO"><appender-ref ref="OUT"/></root>
+</configuration>

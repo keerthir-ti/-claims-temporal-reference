@@ -1,0 +1,23 @@
+# Catastrophe variation: auto claims in Texas arriving through the CAT routing channel.
+# Customer contact is done by bulk outreach during a CAT, so the flow skips INITIAL_CONTACT and
+# runs reserve + appraisal in parallel to cut cycle time. More specific than auto-default, so it wins.
+id: auto-cat-tx
+version: 2
+match:
+  lob: AUTO
+  state: TX
+  routingChannel: CAT
+authorityLimitCents: 1000000
+stages:
+  - name: coverage
+    steps: [VERIFY_COVERAGE]
+  - name: reserve-and-inspect
+    steps: [OPEN_RESERVE, ASSIGN_APPRAISAL]
+  - name: estimate
+    steps: [AWAIT_ESTIMATE]
+  - name: pay
+    steps: [ISSUE_PAYMENT]
+  - name: settle
+    steps: [FINALIZE_PAYMENT]
+  - name: close
+    steps: [CLOSE_CLAIM]

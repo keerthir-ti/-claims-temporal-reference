@@ -1,0 +1,26 @@
+# Temporal SDK metrics (Prometheus format) from every worker -> Elasticsearch, so ELK is the single
+# observability stack. Key series: temporal_workflow_task_schedule_to_start_latency,
+# temporal_activity_schedule_to_start_latency (backlog / under-provisioned workers),
+# temporal_workflow_task_execution_failed (non-determinism, bad payloads), temporal_activity_execution_failed,
+# temporal_worker_task_slots_available, temporal_sticky_cache_size.
+metricbeat.modules:
+  - module: prometheus
+    period: 10s
+    metricsets: ["collector"]
+    hosts:
+      - "bridge:9464"
+      - "lifecycle-worker:9464"
+      - "stp-worker:9464"
+      - "tsa-worker:9464"
+      - "is-worker:9464"
+    metrics_path: /metrics
+    use_types: true
+    rate_counters: true
+
+output.elasticsearch:
+  hosts: ["http://elasticsearch:9200"]
+  index: "claims-metrics-%{+yyyy.MM.dd}"
+setup.ilm.enabled: false
+setup.template.name: "claims-metrics"
+setup.template.pattern: "claims-metrics-*"
+setup.template.settings.index.number_of_replicas: 0

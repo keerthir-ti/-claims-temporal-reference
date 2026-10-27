@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "claimId": "CLM-1003",
+  "track": "TSA",
+  "stageVersion": 1,
+  "outcome": "ROUTE",
+  "nextTrack": "IS",
+  "reason": "coverageStatusIn=['UNCERTAIN']",
+  "ruleId": "coverage-uncertain",
+  "completedSteps": ["TRIAGE"]
+}

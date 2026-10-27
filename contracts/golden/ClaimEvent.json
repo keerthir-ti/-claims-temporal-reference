@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "eventId": "7d6c1f7e-1f0e-4e0b-9f53-2a5b1b0d9c11",
+  "claimId": "CLM-1002",
+  "eventType": "CLAIM_UPDATED",
+  "occurredAt": "2026-10-27T08:05:19Z",
+  "sourceVersion": 2,
+  "attributes": { "changedFields": "injuryReported" }
+}

@@ -1,0 +1,187 @@
+# Local stack (use the Makefile: make up / make demo / make q1 … q7).
+#   Temporal + Java app + Python app + mock data + Postgres:  docker compose up -d --build
+#   + ELK:                                                     docker compose --profile elk up -d
+name: claims-temporal
+
+x-temporal-env: &temporal-env
+  TEMPORAL_ADDRESS: temporal:7233
+  TEMPORAL_NAMESPACE: default
+  METRICS_PORT: "9464"
+  # Worker Deployment Versioning: workers announce {deployment, BUILD_ID}; deploy-setup promotes it.
+  WORKER_VERSIONING: "${WORKER_VERSIONING:-true}"
+  BUILD_ID: "${BUILD_ID:-v1}"
+  # Where the MOCK activities find their scripted data. Real activities do not use this.
+  MOCK_SYSTEMS_URL: http://mock-data:8090
+
+x-java: &java
+  build: { context: ., dockerfile: java/Dockerfile, target: runtime }
+  image: claims-temporal-java:dev
+  restart: unless-stopped
+  labels: { claims.logs: "true" }
+  depends_on:
+    temporal: { condition: service_healthy }
+
+x-python: &python
+  build: { context: ., dockerfile: python/Dockerfile, target: runtime }
+  image: claims-temporal-python:dev
+  restart: unless-stopped
+  labels: { claims.logs: "true" }
+  depends_on:
+    temporal: { condition: service_healthy }
+
+services:
+  # --------------------------------------------------------------- Temporal (dev server; Temporal Cloud in production)
+  temporal:
+    image: temporalio/temporal:1.9.1
+    command:
+      - server
+      - start-dev
+      - --ip=0.0.0.0
+      - --ui-ip=0.0.0.0
+      - --search-attribute=ClaimId=Keyword
+      - --search-attribute=ClaimTrack=Keyword
+      - --search-attribute=StageVersion=Int
+      - --search-attribute=RetriageCount=Int
+      - --search-attribute=StpFlow=Keyword
+    ports: ["${TEMPORAL_HOST_PORT:-7233}:7233", "${TEMPORAL_UI_HOST_PORT:-8233}:8233"]
+    healthcheck:
+      test: ["CMD", "temporal", "operator", "cluster", "health", "--address", "localhost:7233"]
+      interval: 5s
+      retries: 30
+
+  # Promotes each worker deployment's BUILD_ID to "current" once its workers are polling. Without it,
+  # versioned workers receive no work. In production the release pipeline does this (with ramping).
+  deploy-setup:
+    profiles: ["setup"]
+    image: temporalio/temporal:1.9.1
+    entrypoint: ["sh", "/deploy-setup.sh"]
+    environment: { BUILD_ID: "${BUILD_ID:-v1}" }
+    volumes: ["./deploy/deploy-setup.sh:/deploy-setup.sh:ro"]
+
+  # --------------------------------------------------------------- Java application
+  bridge:
+    <<: *java
+    command: ["bridge"]
+    environment:
+      <<: *temporal-env
+      SERVICE_NAME: claims-event-bridge
+      TSA_ENABLED: "${TSA_ENABLED:-true}"     # false = pilot scope (Lifecycle -> STP only)
+      IS_ENABLED: "${IS_ENABLED:-true}"
+      MANUAL_SLA_SECONDS: "300"
+      REOPEN_WINDOW_SECONDS: "45"             # short so the q2 walkthrough can show completion + reopen
+      EVENT_WAIT_SECONDS: "60"
+      REVALIDATE_INTERVAL_SECONDS: "10"
+    ports: ["8085:8085"]
+
+  lifecycle-worker:
+    <<: *java
+    command: ["lifecycle"]
+    depends_on:
+      temporal: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+    environment:
+      <<: *temporal-env
+      SERVICE_NAME: claims-lifecycle-worker
+      PROJECTION_JDBC_URL: jdbc:postgresql://postgres:5432/claims
+
+  stp-worker:
+    <<: *java
+    command: ["stp"]
+    environment:
+      <<: *temporal-env
+      SERVICE_NAME: claims-stp-worker
+
+  # --------------------------------------------------------------- Python application
+  tsa-worker:
+    <<: *python
+    command: ["python", "-m", "claims.temporal.workers.main", "tsa"]
+    environment: { <<: *temporal-env }
+
+  is-worker:
+    <<: *python
+    command: ["python", "-m", "claims.temporal.workers.main", "is"]
+    environment: { <<: *temporal-env }
+
+  # --------------------------------------------------------------- mock data (stands in for the external systems)
+  mock-data:
+    build: { context: mock-data }
+    image: claims-temporal-mock-data:dev
+    restart: unless-stopped
+    labels: { claims.logs: "true" }
+    environment:
+      BRIDGE_URL: http://bridge:8085
+      MOCK_FAILURE_RATE: "${MOCK_FAILURE_RATE:-0.05}"
+      MOCK_LATENCY_MS: "${MOCK_LATENCY_MS:-50}"
+    ports: ["8090:8090"]
+
+  # --------------------------------------------------------------- database (business history)
+  postgres:
+    image: postgres:16-alpine
+    environment: { POSTGRES_USER: claims, POSTGRES_PASSWORD: claims, POSTGRES_DB: claims }
+    volumes: ["./db/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro"]
+    ports: ["${POSTGRES_HOST_PORT:-5432}:5432"]
+    healthcheck: { test: ["CMD", "pg_isready", "-U", "claims"], interval: 5s, retries: 20 }
+
+  # --------------------------------------------------------------- demo tools (profile: tools)
+  #   docker compose run --rm demo python -m demo.cli q1      (the Makefile wraps this)
+  demo:
+    profiles: ["tools"]
+    build: { context: ., dockerfile: demo/Dockerfile }
+    image: claims-temporal-demo:dev
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: default
+      DEMO_URL: http://mock-data:8090/demo
+      BRIDGE_URL: http://bridge:8085
+      PROJECTION_DSN: postgresql://claims:claims@postgres:5432/claims
+
+  # --------------------------------------------------------------- ELK observability (profile: elk)
+  elasticsearch:
+    profiles: ["elk"]
+    image: elasticsearch:8.19.23
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms768m -Xmx768m
+    ports: ["9200:9200"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs localhost:9200/_cluster/health | grep -qv red"]
+      interval: 10s
+      retries: 30
+
+  kibana:
+    profiles: ["elk"]
+    image: kibana:8.19.23
+    restart: unless-stopped
+    # Interactive setup off: otherwise a Kibana that boots before ES is reachable parks in the
+    # enrollment wizard forever instead of retrying.
+    environment: { ELASTICSEARCH_HOSTS: http://elasticsearch:9200, INTERACTIVESETUP_ENABLED: "false" }
+    ports: ["5601:5601"]
+    depends_on: { elasticsearch: { condition: service_healthy } }
+
+  filebeat:
+    profiles: ["elk"]
+    image: elastic/filebeat:8.19.23
+    user: root
+    command: ["--strict.perms=false"]
+    volumes:
+      - ./observability/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on: { elasticsearch: { condition: service_healthy } }
+
+  metricbeat:
+    profiles: ["elk"]
+    image: elastic/metricbeat:8.19.23
+    user: root
+    command: ["--strict.perms=false"]
+    volumes: ["./observability/metricbeat.yml:/usr/share/metricbeat/metricbeat.yml:ro"]
+    depends_on: { elasticsearch: { condition: service_healthy } }
+
+  kibana-setup:
+    profiles: ["elk"]
+    image: curlimages/curl:8.15.0
+    volumes: ["./observability/kibana-setup.sh:/setup.sh:ro"]
+    entrypoint: ["sh", "/setup.sh"]
+    depends_on: { kibana: { condition: service_started } }

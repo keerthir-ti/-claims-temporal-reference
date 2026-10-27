@@ -1,0 +1,42 @@
+# Ships stdout of every container labelled claims.logs=true (all workers, bridge, mock-data service).
+# Java (logstash-logback-encoder) and Python (python-json-logger) both emit JSON with the same
+# Temporal field names: WorkflowId, RunId, WorkflowType, TaskQueue, ActivityType, Attempt.
+filebeat.inputs:
+  - type: filestream
+    id: claims-containers
+    paths: ["/var/lib/docker/containers/*/*.log"]
+    parsers:
+      - container: { stream: all, format: docker }
+
+processors:
+  - add_docker_metadata: { host: "unix:///var/run/docker.sock" }
+  - drop_event:
+      when:
+        not:
+          equals: { container.labels.claims_logs: "true" }
+  - decode_json_fields:
+      fields: ["message"]
+      target: "app"
+      add_error_key: true
+  - script:
+      lang: javascript
+      source: >
+        function process(event) {
+          var wf = event.Get("app.WorkflowId");
+          if (wf && wf.indexOf("claim:") === 0) {
+            var parts = wf.split(":");
+            event.Put("claim.id", parts[1]);
+            if (parts.length > 2) { event.Put("claim.track_run", parts.slice(2).join(":")); }
+          }
+          var msg = event.Get("app.message");
+          if (msg) { event.Put("message", msg); }
+        }
+  - drop_fields: { fields: ["agent", "ecs", "input", "log.offset", "stream"], ignore_missing: true }
+
+output.elasticsearch:
+  hosts: ["http://elasticsearch:9200"]
+  index: "claims-logs-%{+yyyy.MM.dd}"
+setup.ilm.enabled: false
+setup.template.name: "claims-logs"
+setup.template.pattern: "claims-logs-*"
+setup.template.settings.index.number_of_replicas: 0

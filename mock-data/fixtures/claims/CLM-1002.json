@@ -1,0 +1,33 @@
+{
+  "scenario": "Home claim goes STP; demo patches injuryReported=true mid-flight -> STP re-reads ClaimsPro, finds a material change, asks parent to re-triage -> TSA routes to MANUAL -> adjuster closes (Update).",
+  "claim": {
+    "claimId": "CLM-1002",
+    "lob": "HOME",
+    "state": "RI",
+    "company": "CO-MA",
+    "routingChannel": "AGENT",
+    "lossType": "WATER",
+    "injuryReported": false,
+    "estimatedLossCents": 800000,
+    "policyActive": true,
+    "coverageStatus": "CONFIRMED",
+    "pii": {
+      "policyHolderName": "Jane Example",
+      "phone": "555-0100"
+    }
+  },
+  "behaviour": {
+    "ai": {
+      "risk": {
+        "fraudScore": 0.1,
+        "complexity": 0.3
+      }
+    },
+    "eClaims": {
+      "estimate": {
+        "amountCents": 640000,
+        "delaySeconds": 20
+      }
+    }
+  }
+}

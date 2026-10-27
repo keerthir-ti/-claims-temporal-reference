@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "claimId": "CLM-1003",
+  "stageVersion": 2,
+  "track": "IS",
+  "step": "COVERAGE_OUTCOME",
+  "status": "CONFIRMED",
+  "detail": "documents=received",
+  "workflowId": "claim:CLM-1003:is:2",
+  "runId": "01a17c64-6a39-7052-b872-97887f15869f",
+  "occurredAt": "2026-10-27T08:06:01Z"
+}

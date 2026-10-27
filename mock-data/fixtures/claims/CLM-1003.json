@@ -1,0 +1,41 @@
+{
+  "scenario": "Coverage uncertain -> TSA routes to IS (Python) -> documents arrive after a delay -> coverage confirmed -> back to TSA -> STP -> closed.",
+  "claim": {
+    "claimId": "CLM-1003",
+    "lob": "AUTO",
+    "state": "NH",
+    "company": "CO-MA",
+    "routingChannel": "AGENT",
+    "lossType": "COLLISION",
+    "injuryReported": false,
+    "estimatedLossCents": 150000,
+    "policyActive": true,
+    "coverageStatus": "UNCERTAIN",
+    "pii": {
+      "policyHolderName": "Jane Example",
+      "phone": "555-0100"
+    }
+  },
+  "behaviour": {
+    "ai": {
+      "risk": {
+        "fraudScore": 0.1,
+        "complexity": 0.25
+      },
+      "coverage": {
+        "likelyCovered": true
+      }
+    },
+    "eClaims": {
+      "estimate": {
+        "amountCents": 120000,
+        "delaySeconds": 2
+      }
+    },
+    "imageRight": {
+      "documents": {
+        "delaySeconds": 6
+      }
+    }
+  }
+}

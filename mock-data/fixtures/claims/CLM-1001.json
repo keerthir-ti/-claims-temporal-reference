@@ -1,0 +1,46 @@
+{
+  "scenario": "Auto STP happy path. First vendor declines (grandchild retries next vendor); payment call fails AFTER commit once -> retry is de-duplicated by Idempotency-Key.",
+  "claim": {
+    "claimId": "CLM-1001",
+    "lob": "AUTO",
+    "state": "MA",
+    "company": "CO-MA",
+    "routingChannel": "AGENT",
+    "lossType": "COLLISION",
+    "injuryReported": false,
+    "estimatedLossCents": 300000,
+    "policyActive": true,
+    "coverageStatus": "CONFIRMED",
+    "pii": {
+      "policyHolderName": "Jane Example",
+      "phone": "555-0100"
+    }
+  },
+  "behaviour": {
+    "ai": {
+      "risk": {
+        "fraudScore": 0.05,
+        "complexity": 0.2
+      }
+    },
+    "eClaims": {
+      "vendors": [
+        {
+          "vendorId": "V-100",
+          "accepts": false
+        },
+        {
+          "vendorId": "V-200",
+          "accepts": true
+        }
+      ],
+      "estimate": {
+        "amountCents": 245000,
+        "delaySeconds": 3
+      }
+    },
+    "claimsPro": {
+      "failPaymentAfterCommitOnce": true
+    }
+  }
+}

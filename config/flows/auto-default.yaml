@@ -1,0 +1,26 @@
+# STP flow for personal auto. Stages run in order; steps inside one stage run in parallel.
+# Only registered steps are allowed (FlowInvariants.REGISTERED_STEPS); payment authority and
+# "never interrupt a money stage" are enforced in Java regardless of what this file says.
+id: auto-default
+version: 1
+match:
+  lob: AUTO
+authorityLimitCents: 1500000   # $15,000 (capped by the compiled $25,000 ceiling)
+stages:
+  - name: contact
+    steps: [INITIAL_CONTACT]
+  - name: coverage
+    steps: [VERIFY_COVERAGE]
+  - name: reserve
+    steps: [OPEN_RESERVE]
+  - name: inspection
+    steps: [VENDOR_DISPATCH, ASSIGN_APPRAISAL]   # parallel; VENDOR_DISPATCH is a grandchild workflow
+  - name: estimate
+    steps: [AWAIT_ESTIMATE]
+  - name: pay
+    steps: [ISSUE_PAYMENT]
+  - name: settle
+    steps: [FINALIZE_PAYMENT]
+  - name: close
+    interruptible: false
+    steps: [CLOSE_CLAIM]

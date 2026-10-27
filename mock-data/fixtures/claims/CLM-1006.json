@@ -1,0 +1,34 @@
+{
+  "scenario": "CAT flow variation (AUTO + TX + CAT). The ESTIMATE_RECEIVED event is dropped; the durable-timer backstop poll still finds the estimate.",
+  "claim": {
+    "claimId": "CLM-1006",
+    "lob": "AUTO",
+    "state": "TX",
+    "company": "CO-MA",
+    "routingChannel": "CAT",
+    "lossType": "HAIL",
+    "injuryReported": false,
+    "estimatedLossCents": 400000,
+    "policyActive": true,
+    "coverageStatus": "CONFIRMED",
+    "pii": {
+      "policyHolderName": "Jane Example",
+      "phone": "555-0100"
+    }
+  },
+  "behaviour": {
+    "ai": {
+      "risk": {
+        "fraudScore": 0.05,
+        "complexity": 0.1
+      }
+    },
+    "eClaims": {
+      "estimate": {
+        "amountCents": 310000,
+        "delaySeconds": 2,
+        "dropEvent": true
+      }
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "claimId": "CLM-1002",
+  "currentTrack": "MANUAL",
+  "stageVersion": 4,
+  "retriageCount": 1,
+  "bufferedEventCount": 0,
+  "transitions": [
+    { "from": "STP", "to": "TSA", "stageVersion": 3, "reason": "re-triage requested: injury reported", "at": "2026-10-27T08:05:40Z" }
+  ]
+}

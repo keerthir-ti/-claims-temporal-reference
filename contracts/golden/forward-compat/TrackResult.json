@@ -1,0 +1,10 @@
+{
+  "_comment": "Written by a NEWER child: unknown field + unknown enum value. Older readers must decode it, mapping the enum to UNKNOWN.",
+  "schemaVersion": 2,
+  "claimId": "CLM-9",
+  "track": "STP",
+  "stageVersion": 3,
+  "outcome": "PARTIAL_PAYMENT_PENDING",
+  "reason": "new outcome introduced in v2",
+  "riskBand": "LOW"
+}

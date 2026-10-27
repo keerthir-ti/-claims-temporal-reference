@@ -1,0 +1,459 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://contracts.example.com/claims/v1/claims-contracts.v1.json",
+  "title": "ClaimsContracts",
+  "description": "Canonical cross-language (Java <-> Python) contracts for Temporal payloads. Rules: additive-only evolution, every enum has UNKNOWN as its fallback, money is integer cents, timestamps are ISO-8601 UTC strings, payloads carry references (claimId) not claim data.",
+  "type": "object",
+  "properties": {
+    "claimEvent": {
+      "$ref": "#/definitions/ClaimEvent"
+    },
+    "lifecycleInput": {
+      "$ref": "#/definitions/LifecycleInput"
+    },
+    "lifecycleState": {
+      "$ref": "#/definitions/LifecycleState"
+    },
+    "trackRequest": {
+      "$ref": "#/definitions/TrackRequest"
+    },
+    "trackResult": {
+      "$ref": "#/definitions/TrackResult"
+    },
+    "adjusterDecision": {
+      "$ref": "#/definitions/AdjusterDecision"
+    },
+    "adjusterDecisionAck": {
+      "$ref": "#/definitions/AdjusterDecisionAck"
+    },
+    "projectionRecord": {
+      "$ref": "#/definitions/ProjectionRecord"
+    }
+  },
+  "definitions": {
+    "Track": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN",
+        "TSA",
+        "STP",
+        "IS",
+        "MANUAL",
+        "ESCALATION",
+        "SIU",
+        "CLOSED"
+      ],
+      "javaType": "com.example.claims.contracts.Track"
+    },
+    "TrackOutcome": {
+      "description": "How a child track finished. ROUTE is TSA's verdict (see nextTrack). Children never move the claim themselves; the parent decides.",
+      "type": "string",
+      "enum": [
+        "UNKNOWN",
+        "COMPLETED",
+        "ROUTE",
+        "RETRIAGE_REQUESTED",
+        "ADJUSTER_HANDOFF"
+      ],
+      "javaType": "com.example.claims.contracts.TrackOutcome"
+    },
+    "ClaimEventType": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN",
+        "FNOL_RECEIVED",
+        "CLAIM_UPDATED",
+        "DOCUMENT_RECEIVED",
+        "ESTIMATE_RECEIVED",
+        "PAYMENT_CANCEL_REQUESTED",
+        "CLAIM_REOPENED"
+      ],
+      "javaType": "com.example.claims.contracts.ClaimEventType"
+    },
+    "AdjusterAction": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN",
+        "CLOSE",
+        "RETURN_TO_STP",
+        "RETRIAGE"
+      ],
+      "javaType": "com.example.claims.contracts.AdjusterAction"
+    },
+    "ClaimEvent": {
+      "description": "Small canonical, non-PII event produced by the Claims Event Bridge. Signal payload for parent and (forwarded) child workflows.",
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "default": 1
+        },
+        "eventId": {
+          "type": "string",
+          "description": "Source event id; used for de-duplication."
+        },
+        "claimId": {
+          "type": "string"
+        },
+        "eventType": {
+          "$ref": "#/definitions/ClaimEventType"
+        },
+        "occurredAt": {
+          "type": "string",
+          "description": "ISO-8601 UTC."
+        },
+        "sourceVersion": {
+          "type": "integer",
+          "description": "ClaimsPro row version at emit time. Consumers must still re-read."
+        },
+        "attributes": {
+          "type": "object",
+          "description": "Allowlisted non-PII hints only (e.g. changedFields).",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "existingJavaType": "java.util.Map<String,String>"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "eventId",
+        "claimId",
+        "eventType"
+      ]
+    },
+    "LifecycleSettings": {
+      "description": "Tunables fixed at workflow start (workflows must not read env vars). Demo values are seconds; production values are days.",
+      "type": "object",
+      "properties": {
+        "tsaEnabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "isEnabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "maxRetriage": {
+          "type": "integer",
+          "default": 3
+        },
+        "manualSlaSeconds": {
+          "type": "integer",
+          "default": 300
+        },
+        "reopenWindowSeconds": {
+          "type": "integer",
+          "default": 120
+        },
+        "eventWaitSeconds": {
+          "type": "integer",
+          "default": 60
+        },
+        "revalidateIntervalSeconds": {
+          "type": "integer",
+          "default": 15
+        },
+        "continueAsNewEventThreshold": {
+          "type": "integer",
+          "default": 10000
+        }
+      }
+    },
+    "Transition": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "$ref": "#/definitions/Track"
+        },
+        "to": {
+          "$ref": "#/definitions/Track"
+        },
+        "stageVersion": {
+          "type": "integer"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "at": {
+          "type": "string"
+        }
+      }
+    },
+    "LifecycleCheckpoint": {
+      "description": "State carried across Continue-As-New. Keep bounded.",
+      "type": "object",
+      "properties": {
+        "currentTrack": {
+          "$ref": "#/definitions/Track"
+        },
+        "stageVersion": {
+          "type": "integer",
+          "default": 0
+        },
+        "retriageCount": {
+          "type": "integer",
+          "default": 0
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Transition"
+          }
+        },
+        "seenEventIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "seenDecisionIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "bufferedEvents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ClaimEvent"
+          }
+        }
+      }
+    },
+    "LifecycleInput": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "default": 1
+        },
+        "claimId": {
+          "type": "string"
+        },
+        "reopened": {
+          "type": "boolean",
+          "default": false
+        },
+        "settings": {
+          "$ref": "#/definitions/LifecycleSettings"
+        },
+        "checkpoint": {
+          "$ref": "#/definitions/LifecycleCheckpoint"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "claimId"
+      ]
+    },
+    "LifecycleState": {
+      "description": "Query result of ClaimLifecycleWorkflow.getState.",
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "default": 1
+        },
+        "claimId": {
+          "type": "string"
+        },
+        "currentTrack": {
+          "$ref": "#/definitions/Track"
+        },
+        "stageVersion": {
+          "type": "integer"
+        },
+        "retriageCount": {
+          "type": "integer"
+        },
+        "activeChildWorkflowId": {
+          "type": "string"
+        },
+        "bufferedEventCount": {
+          "type": "integer"
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Transition"
+          }
+        }
+      }
+    },
+    "TrackRequest": {
+      "description": "Uniform input for every child track. Reference only: children re-read ClaimsPro.",
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "default": 1
+        },
+        "claimId": {
+          "type": "string"
+        },
+        "track": {
+          "$ref": "#/definitions/Track"
+        },
+        "stageVersion": {
+          "type": "integer",
+          "description": "Lease token. Results / writes from an older stageVersion are rejected."
+        },
+        "reason": {
+          "type": "string"
+        },
+        "bufferedEvents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ClaimEvent"
+          }
+        },
+        "settings": {
+          "$ref": "#/definitions/LifecycleSettings"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "claimId",
+        "track",
+        "stageVersion"
+      ]
+    },
+    "TrackResult": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "default": 1
+        },
+        "claimId": {
+          "type": "string"
+        },
+        "track": {
+          "$ref": "#/definitions/Track"
+        },
+        "stageVersion": {
+          "type": "integer"
+        },
+        "outcome": {
+          "$ref": "#/definitions/TrackOutcome"
+        },
+        "nextTrack": {
+          "$ref": "#/definitions/Track"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "ruleId": {
+          "type": "string"
+        },
+        "completedSteps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "claimId",
+        "track",
+        "stageVersion",
+        "outcome"
+      ]
+    },
+    "AdjusterDecision": {
+      "description": "Workflow Update payload (human-in-the-loop). decisionId makes it idempotent.",
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "default": 1
+        },
+        "decisionId": {
+          "type": "string"
+        },
+        "claimId": {
+          "type": "string"
+        },
+        "adjusterId": {
+          "type": "string"
+        },
+        "action": {
+          "$ref": "#/definitions/AdjusterAction"
+        },
+        "notes": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "decisionId",
+        "claimId",
+        "action"
+      ]
+    },
+    "AdjusterDecisionAck": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "default": 1
+        },
+        "decisionId": {
+          "type": "string"
+        },
+        "duplicate": {
+          "type": "boolean"
+        },
+        "trackAtDecision": {
+          "$ref": "#/definitions/Track"
+        }
+      }
+    },
+    "ProjectionRecord": {
+      "description": "Row for the application-owned business projection. Idempotency key = claimId:stageVersion:step.",
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "default": 1
+        },
+        "claimId": {
+          "type": "string"
+        },
+        "stageVersion": {
+          "type": "integer"
+        },
+        "track": {
+          "$ref": "#/definitions/Track"
+        },
+        "step": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "workflowId": {
+          "type": "string"
+        },
+        "runId": {
+          "type": "string"
+        },
+        "occurredAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "claimId",
+        "stageVersion",
+        "step",
+        "status"
+      ]
+    }
+  }
+}

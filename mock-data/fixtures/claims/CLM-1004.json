@@ -1,0 +1,27 @@
+{
+  "scenario": "High fraud score -> SIU; waits for an adjuster decision.",
+  "claim": {
+    "claimId": "CLM-1004",
+    "lob": "AUTO",
+    "state": "MA",
+    "company": "CO-MA",
+    "routingChannel": "AGENT",
+    "lossType": "COLLISION",
+    "injuryReported": false,
+    "estimatedLossCents": 900000,
+    "policyActive": true,
+    "coverageStatus": "CONFIRMED",
+    "pii": {
+      "policyHolderName": "Jane Example",
+      "phone": "555-0100"
+    }
+  },
+  "behaviour": {
+    "ai": {
+      "risk": {
+        "fraudScore": 0.92,
+        "complexity": 0.4
+      }
+    }
+  }
+}

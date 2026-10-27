@@ -1,0 +1,27 @@
+# TSA routing rules, evaluated top to bottom; first match wins.
+# The rules only RECOMMEND a track. The Java parent validates the route (Routing.afterTrack).
+# Conditions (all must hold): fraudScoreGte, complexityGte, coverageStatusIn, injuryReported,
+# policyActive, lobIn, stateNotIn, routingChannelIn.
+version: 4
+rules:
+  - id: siu-fraud
+    when: { fraudScoreGte: 0.8 }
+    route: SIU
+  - id: coverage-denied-or-inconclusive
+    when: { coverageStatusIn: [DENIED, INCONCLUSIVE] }
+    route: MANUAL
+  - id: coverage-uncertain
+    when: { coverageStatusIn: [UNCERTAIN] }
+    route: IS
+  - id: injury-needs-adjuster
+    when: { injuryReported: true }
+    route: MANUAL
+  - id: complex-claim
+    when: { complexityGte: 0.7 }
+    route: MANUAL
+  - id: stp-eligible
+    when: { lobIn: [AUTO, HOME], stateNotIn: [NY], policyActive: true }
+    route: STP
+  - id: default-manual
+    when: {}
+    route: MANUAL
