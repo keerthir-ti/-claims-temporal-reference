@@ -1,0 +1,123 @@
+# Local run of the Claim Orchestrator design. Temporal dev server stands in for Temporal Cloud and a
+# local folder for S3; Postgres holds the projection table and the mock application data.
+name: claim-orchestrator
+
+x-temporal: &temporal-env
+  TEMPORAL_ADDRESS: temporal:7233
+  TEMPORAL_NAMESPACE: default
+  BUILD_ID: ${BUILD_ID:-v1}
+  PAYLOAD_KEY: ${PAYLOAD_KEY:-}
+  PAYLOAD_KEY_ID: ${PAYLOAD_KEY_ID:-key-1}
+  RETRY_WINDOW_SECONDS: ${RETRY_WINDOW_SECONDS:-300}
+
+x-db: &db-env
+  PROJECTION_JDBC_URL: jdbc:postgresql://postgres:5432/claims
+  MOCK_JDBC_URL: jdbc:postgresql://postgres:5432/claims
+  MOCK_DSN: postgresql://claims:claims@postgres:5432/claims
+  MOCK_FAILURE_RATE: ${MOCK_FAILURE_RATE:-0.03}
+
+x-worker: &worker
+  restart: unless-stopped
+  depends_on:
+    temporal: { condition: service_healthy }
+    postgres: { condition: service_healthy }
+
+services:
+  temporal:
+    image: temporalio/temporal:1.9.1
+    command: [server, start-dev, --ip=0.0.0.0, --ui-ip=0.0.0.0,
+              --search-attribute=ClaimId=Keyword, --search-attribute=Stage=Keyword,
+              --search-attribute=Track=Keyword, --search-attribute=OpenDecision=Keyword]
+    ports: ["${TEMPORAL_HOST_PORT:-27233}:7233", "${TEMPORAL_UI_HOST_PORT:-28233}:8233"]
+    healthcheck:
+      test: ["CMD", "temporal", "operator", "cluster", "health", "--address", "localhost:7233"]
+      interval: 5s
+      retries: 30
+
+  postgres:
+    image: postgres:16-alpine
+    environment: { POSTGRES_USER: claims, POSTGRES_PASSWORD: claims, POSTGRES_DB: claims }
+    volumes:
+      - ./database/projection.sql:/docker-entrypoint-initdb.d/01-projection.sql:ro
+      - ./mock-data/schema.sql:/docker-entrypoint-initdb.d/02-mock.sql:ro
+    ports: ["${POSTGRES_HOST_PORT:-25432}:5432"]
+    healthcheck: { test: ["CMD", "pg_isready", "-U", "claims"], interval: 3s, retries: 30 }
+
+  lifecycle-worker:
+    <<: *worker
+    build: { context: ., dockerfile: workers/lifecycle-worker/Dockerfile, target: runtime }
+    image: claim-orchestrator/lifecycle-worker:${BUILD_ID:-v1}
+    environment:
+      <<: [*temporal-env, *db-env]
+      SERVICE_NAME: lifecycle-worker
+      POLICY_FILE: /app/config/decision-policy.yaml
+      ARCHIVE_DIR: /data/archive
+    volumes: ["archive:/data/archive"]
+
+  stp-worker:
+    <<: *worker
+    build: { context: ., dockerfile: workers/stp-worker/Dockerfile, target: runtime }
+    image: claim-orchestrator/stp-worker:${BUILD_ID:-v1}
+    command: ["stp"]
+    environment:
+      <<: [*temporal-env, *db-env]
+      SERVICE_NAME: stp-worker
+      FLOWS_DIR: /app/config/flows
+
+  claimspro-worker:
+    <<: *worker
+    image: claim-orchestrator/stp-worker:${BUILD_ID:-v1}
+    command: ["claimspro"]
+    depends_on:
+      stp-worker: { condition: service_started }
+      postgres: { condition: service_healthy }
+    environment:
+      <<: [*temporal-env, *db-env]
+      SERVICE_NAME: claimspro-worker
+      CLAIMSPRO_RATE_PER_SECOND: ${CLAIMSPRO_RATE_PER_SECOND:-50}
+
+  triage-worker:
+    <<: *worker
+    build: { context: ., dockerfile: workers/triage-worker/Dockerfile, target: runtime }
+    image: claim-orchestrator/triage-worker:${BUILD_ID:-v1}
+    environment:
+      <<: [*temporal-env, *db-env]
+      SERVICE_NAME: triage-worker
+      TRIAGE_RULES: /app/config/triage-rules.yaml
+
+  investigation-worker:
+    <<: *worker
+    build: { context: ., dockerfile: workers/investigation-worker/Dockerfile, target: runtime }
+    image: claim-orchestrator/investigation-worker:${BUILD_ID:-v1}
+    environment:
+      <<: [*temporal-env, *db-env]
+      SERVICE_NAME: investigation-worker
+
+  # Mock application: delivers change events like the event bridge (keeps running).
+  event-feed:
+    <<: *worker
+    build: { context: ., dockerfile: tools/claim-sim/Dockerfile, target: runtime }
+    image: claim-orchestrator/claim-sim:${BUILD_ID:-v1}
+    command: ["feed"]
+    environment:
+      <<: [*temporal-env, *db-env]
+      METRICS_PORT: "0"
+
+  # Mock application, one-off commands: docker compose run --rm sim run
+  sim:
+    profiles: ["tools"]
+    image: claim-orchestrator/claim-sim:${BUILD_ID:-v1}
+    environment:
+      <<: [*temporal-env, *db-env]
+      METRICS_PORT: "0"
+      SCENARIOS_DIR: /app/mock-data/claims
+
+  promote-versions:
+    profiles: ["setup"]
+    image: temporalio/temporal:1.9.1
+    entrypoint: ["sh", "/promote-versions.sh"]
+    environment: { BUILD_ID: "${BUILD_ID:-v1}", TEMPORAL_ADDRESS: "temporal:7233" }
+    volumes: ["./deploy/promote-versions.sh:/promote-versions.sh:ro"]
+
+volumes:
+  archive:

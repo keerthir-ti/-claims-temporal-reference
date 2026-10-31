@@ -1,0 +1,6 @@
+flow_id: home-default
+version: 1
+match: { line_of_business: HOME }
+steps: [CONTACT_CUSTOMER, VERIFY_COVERAGE, OPEN_RESERVE, DISPATCH_AND_APPRAISAL, AWAIT_ESTIMATE, PAY, CLOSE_CLAIM]
+estimate_review_cents: 1500000
+estimate_recheck_seconds: 60

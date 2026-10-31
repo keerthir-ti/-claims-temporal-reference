@@ -1,0 +1,16 @@
+description: No vendor accepts; the claim is closed directly in ClaimsPro, then reopened and paid
+claim: { line_of_business: AUTO, company: CO1, channel: WEB, state: OH, claimed_amount_cents: 250000, adjuster_id: adj-109 }
+behaviour:
+  ai: { fraud_score: 0.05, complexity: 0.2, confidence: 0.95 }
+  eClaims: { no_vendor_attempts: 1, estimate: { amount_cents: 240000, delay_seconds: 3 } }
+demo:
+  expect: CLOSED
+  steps:
+    - wait: { decision: NO_VENDOR }
+    - change: closed_in_claimspro
+    - wait: { stage: CLOSED, workflow: completed }
+    - change: reopened
+    - wait: { decision: REOPEN_REVIEW }
+    - decide: { choice: APPROVE, as: adj-109, roles: [adjuster] }
+    - wait: { decision: NO_VENDOR }
+    - decide: { choice: RETRY_DISPATCH, as: adj-109, roles: [adjuster] }

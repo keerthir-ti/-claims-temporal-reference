@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package claims.v1;
+
+option java_package = "claims.contracts.v1";
+option java_multiple_files = true;
+
+import "claims/v1/common.proto";
+
+// One business-history row. Written by an awaited activity before the workflow moves on.
+message ProjectionEvent {
+  string claim_id = 1;
+  string workflow_id = 2;
+  string run_id = 3;
+  string workflow_type = 4;
+  int32 seq = 5;                    // 1..n within the run, no gaps
+  int32 stage_version = 6;
+  string step = 7;
+  string outcome = 8;
+  string trigger_id = 9;            // event ID or decision ID that caused the step
+  string actor = 10;
+  string reason = 11;
+  map<string, string> refs = 12;    // ClaimsPro references: reserve_id, payment_id, task_id
+  bool closing = 13;                // last row of the run
+  int64 occurred_at_ms = 14;
+}
+
+message StageChange {
+  StepRef step = 1;
+  Stage stage = 2;
+}
+
+message StageInfo {
+  int32 stage_version = 1;
+  Stage stage = 2;
+}
+
+message RecordCheck {
+  string claim_id = 1;
+  string current_run_id = 2;
+  int32 current_seq = 3;
+}
+
+message ArchiveRequest {
+  int32 closed_more_than_days = 1;
+}
+
+message ArchiveReport {
+  int32 claims = 1;
+  int32 rows = 2;
+  int32 histories_checked = 3;
+  int32 histories_written = 4;
+}

@@ -10,7 +10,7 @@
   <name>Claims Temporal reference - Java (Lifecycle parent, STP track, Event Bridge, Projection)</name>
 
   <properties>
-    <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.release>25</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <temporal.version>1.40.0</temporal.version>
     <jackson.version>2.19.2</jackson.version>

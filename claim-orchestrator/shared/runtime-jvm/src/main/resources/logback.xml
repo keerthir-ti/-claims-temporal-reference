@@ -1,0 +1,13 @@
+<configuration>
+  <!-- JSON lines on stdout for ELK. Temporal adds WorkflowId, RunId, WorkflowType, TaskQueue,
+       ActivityType and Attempt to the MDC. -->
+  <appender name="OUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+      <customFields>{"service":"${SERVICE_NAME:-claims}"}</customFields>
+    </encoder>
+  </appender>
+  <logger name="io.grpc" level="WARN"/>
+  <logger name="io.temporal" level="INFO"/>
+  <logger name="com.zaxxer.hikari" level="WARN"/>
+  <root level="INFO"><appender-ref ref="OUT"/></root>
+</configuration>

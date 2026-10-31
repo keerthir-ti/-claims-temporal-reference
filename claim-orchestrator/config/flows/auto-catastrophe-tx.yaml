@@ -1,0 +1,7 @@
+# Catastrophe channel in Texas: no customer call before dispatch; faster re-reads of the estimate.
+flow_id: auto-catastrophe-tx
+version: 1
+match: { line_of_business: AUTO, channel: CAT, state: TX }
+steps: [VERIFY_COVERAGE, OPEN_RESERVE, DISPATCH_AND_APPRAISAL, AWAIT_ESTIMATE, PAY, CLOSE_CLAIM]
+estimate_review_cents: 2000000
+estimate_recheck_seconds: 10

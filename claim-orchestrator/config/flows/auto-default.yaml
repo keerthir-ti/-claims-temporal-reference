@@ -1,0 +1,7 @@
+# STP flow for auto claims. Steps run in this order; only registered steps are allowed.
+flow_id: auto-default
+version: 1
+match: { line_of_business: AUTO }
+steps: [CONTACT_CUSTOMER, VERIFY_COVERAGE, OPEN_RESERVE, DISPATCH_AND_APPRAISAL, AWAIT_ESTIMATE, PAY, CLOSE_CLAIM]
+estimate_review_cents: 2000000      # estimates above 20,000.00 go to an appraiser
+estimate_recheck_seconds: 60        # re-read eClaims in case the estimate event is lost

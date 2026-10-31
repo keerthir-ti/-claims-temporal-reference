@@ -1,0 +1,10 @@
+description: AI result below the confidence threshold; a triage adjuster chooses STP
+claim: { line_of_business: AUTO, company: CO2, channel: WEB, state: OH, claimed_amount_cents: 200000, adjuster_id: adj-108 }
+behaviour:
+  ai: { fraud_score: 0.3, complexity: 0.4, confidence: 0.4 }
+  eClaims: { estimate: { amount_cents: 190000, delay_seconds: 3 } }
+demo:
+  expect: CLOSED
+  steps:
+    - wait: { decision: TRIAGE_REVIEW }
+    - decide: { choice: STP, as: tri-4, roles: [triage-adjuster] }

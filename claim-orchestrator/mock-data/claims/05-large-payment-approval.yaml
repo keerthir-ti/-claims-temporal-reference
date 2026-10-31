@@ -1,0 +1,14 @@
+description: Large estimate reviewed by an appraiser; payment above STP authority approved by a second person
+claim: { line_of_business: AUTO, company: CO1, channel: WEB, state: OH, claimed_amount_cents: 2600000, adjuster_id: adj-105 }
+behaviour:
+  ai: { fraud_score: 0.1, complexity: 0.4, confidence: 0.9 }
+  eClaims: { estimate: { amount_cents: 2500000, delay_seconds: 3 } }
+demo:
+  expect: CLOSED
+  steps:
+    - wait: { decision: ESTIMATE_REVIEW }
+    - decide: { choice: APPROVE, as: apr-3, roles: [appraiser] }
+    - wait: { decision: PAYMENT_APPROVAL }
+    - decide: { choice: APPROVE, as: adj-105, roles: [payment-approver], authority_cents: 5000000, expect: rejected }
+    - decide: { choice: APPROVE, as: sup-9, roles: [payment-approver], authority_cents: 1000000, expect: rejected }
+    - decide: { choice: APPROVE, as: sup-2, roles: [payment-approver], authority_cents: 5000000 }

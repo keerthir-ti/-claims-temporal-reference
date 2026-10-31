@@ -1,0 +1,8 @@
+# Triage routing applied to the AI risk assessment, first match wins. Placeholder rules: replace with
+# the business rules. A result below triage_confidence_threshold also goes to a triage adjuster.
+rules:
+  - { when: { fraud_score_at_least: 0.8 }, route: SIU,           reason: high fraud score }
+  - { when: { injury_reported: true },     route: MANUAL,        reason: injury reported }
+  - { when: { coverage_question: true },   route: INVESTIGATION, reason: coverage facts missing }
+  - { when: { complexity_at_least: 0.7 },  route: MANUAL,        reason: complex claim }
+default: { route: STP, reason: eligible for straight-through processing }
