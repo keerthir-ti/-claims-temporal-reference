@@ -102,8 +102,9 @@ How a claim runs:
 | ClaimsPro: read, reserve, payment, close, tasks | claimspro-activities | 30 s | Backoff 1 s → 60 s (×2) within the retry window (policy, 1 h); then an operations task |
 | ClaimsPro tasks, payment close and cancel | claimspro-activities | 30 s | Until done: tasks are how people reach the claim; a created payment always closes |
 | Projection (history rows, stage version) | claims-lifecycle | 10 s | Until done: the workflow does not move on until its row is written |
-| Comm Hub, Policy Gate, eClaims, Flow | claims-stp | 30 s | Retry window, then an operations task |
-| AI (`Ai.*`), triage rules | claims-tsa, claims-is | 60 s | 5 attempts, then a person decides |
+| Comm Hub, Policy Gate, eClaims; Flow | claims-stp | 30 s; 10 s | Retry window, then an operations task |
+| AI (`Ai.*`) | claims-tsa, claims-is | 60 s | 5 attempts, then a person decides |
+| Triage rules (`Triage.applyRules`, pure code) | claims-tsa | 10 s | Until done |
 | Archive | claims-lifecycle | 15 min, heartbeat 1 min | Backoff up to 5 min |
 
 Business outcomes (`NotFound`, `Refused`, `StaleStage`) are not retried; the workflow takes the business path.
@@ -147,6 +148,8 @@ client's KMS key. Business rows and exported histories join on workflow ID and r
 - Payloads and failure messages are encrypted with AES-256-GCM by one codec, byte-compatible in Java and Python.
   A worker using mTLS refuses to start without `PAYLOAD_KEY`. Keys rotate with `PAYLOAD_PREVIOUS_KEYS`: new data uses
   the new key, older histories still decode.
+- The codec server (`python -m claims_runtime.codec_server`) decodes payloads for authorised users of the Temporal
+  UI; it runs in the client's account behind SSO and holds the keys, so Temporal never sees them.
 - Workflow IDs and search attributes are not encrypted, so they hold IDs and codes only, never personal data.
 - The event bridge forwards allowlisted, non-personal change events; activities read claim data from ClaimsPro.
 - Decision authority is checked in the workflow (role, authority, four eyes, reason), not only in the UI; the
