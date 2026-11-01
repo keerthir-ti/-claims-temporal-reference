@@ -1,0 +1,9 @@
+# Auto claim, straight through. The payment reply is lost once: the retry finds the payment by its key.
+description: Straight through; payment created once although ClaimsPro's reply is lost
+claim: { line_of_business: AUTO, company: CO1, channel: WEB, state: OH, claimed_amount_cents: 420000, adjuster_id: adj-101 }
+behaviour:
+  ai: { fraud_score: 0.05, complexity: 0.2, confidence: 0.95 }
+  claimsPro: { payment_ack_lost_once: true }
+  eClaims: { estimate: { amount_cents: 410000, delay_seconds: 4 } }
+demo:
+  expect: CLOSED

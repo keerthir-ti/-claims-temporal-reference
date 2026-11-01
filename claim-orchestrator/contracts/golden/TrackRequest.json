@@ -1,0 +1,1 @@
+{"claimId": "CLM-1001", "stageVersion": 3, "track": "TRACK_STP", "reason": "eligible for straight-through processing", "bufferedEvents": [{"eventId": "e-7", "claimId": "CLM-1001", "type": "ESTIMATE_RECEIVED"}]}

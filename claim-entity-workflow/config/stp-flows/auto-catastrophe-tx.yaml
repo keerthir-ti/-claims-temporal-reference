@@ -1,0 +1,14 @@
+# Catastrophe channel in Texas: no customer call (bulk outreach during a catastrophe); coverage, reserve
+# and appraisal run together to cut cycle time; faster re-reads of the estimate.
+flow_id: auto-catastrophe-tx
+version: 1
+match: { line_of_business: AUTO, channel: CAT, state: TX }
+stages:
+  - { name: assess,     steps: [VERIFY_COVERAGE, OPEN_RESERVE, ASSIGN_APPRAISAL], interruptible: true }
+  - { name: dispatch,   steps: [DISPATCH],                     interruptible: true }
+  - { name: estimate,   steps: [AWAIT_ESTIMATE],               interruptible: true }
+  - { name: pay,        steps: [PAY] }
+  - { name: close,      steps: [CLOSE_CLAIM] }
+estimate_review_cents: 2000000
+estimate_recheck_seconds: 10
+vendors_per_round: 3

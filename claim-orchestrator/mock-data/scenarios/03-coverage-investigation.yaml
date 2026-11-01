@@ -1,0 +1,10 @@
+description: Coverage facts missing; investigation waits for documents, then re-triage sends it to STP
+claim: { line_of_business: AUTO, company: CO2, channel: WEB, state: IN, claimed_amount_cents: 600000, adjuster_id: adj-103 }
+behaviour:
+  ai: { fraud_score: 0.1, complexity: 0.4, confidence: 0.85, coverage_question: true }
+  eClaims: { estimate: { amount_cents: 590000, delay_seconds: 3 } }
+demo:
+  expect: CLOSED
+  steps:
+    - wait: { decision: COVERAGE_INFORMATION }
+    - change: documents_received

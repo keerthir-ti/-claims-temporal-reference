@@ -1,12 +1,12 @@
 package claims.lifecycle.activities;
 
-import claims.contracts.v1.ClaimRef;
-import claims.contracts.v1.Done;
-import claims.contracts.v1.ProjectionEvent;
-import claims.contracts.v1.RecordCheck;
-import claims.contracts.v1.Stage;
-import claims.contracts.v1.StageChange;
-import claims.contracts.v1.StageInfo;
+import claims.contracts.ClaimRef;
+import claims.contracts.Done;
+import claims.contracts.ProjectionEvent;
+import claims.contracts.RecordCheck;
+import claims.contracts.Stage;
+import claims.contracts.StageChange;
+import claims.contracts.StageInfo;
 import claims.runtime.activities.ProjectionActivities;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.temporal.failure.ApplicationFailure;

@@ -9,7 +9,7 @@ from temporalio.worker import Worker
 
 from claims_runtime import logs, names
 from claims_runtime.connection import connect
-from claims_runtime.deployment import pinned
+from claims_runtime.versioning import pinned
 from triage_worker.mock_ai import MockRiskAssessor
 from triage_worker.rules import TriageRules
 from triage_worker.workflow import TriageWorkflow

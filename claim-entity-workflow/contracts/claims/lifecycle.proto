@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package claims;
+
+option java_package = "claims.contracts";
+option java_multiple_files = true;
+
+import "claims/common.proto";
+import "claims/decisions.proto";
+import "claims/events.proto";
+import "claims/payments.proto";
+
+// Input of ClaimWorkflow. "carried" is set only by Continue-As-New.
+message ClaimStart {
+  string claim_id = 1;
+  bool reopened = 2;
+  string start_event_id = 3;
+  ClaimState carried = 4;
+}
+
+// Carried across Continue-As-New, which happens only between stages with no decision and no payment open.
+message ClaimState {
+  string claim_id = 1;
+  Stage stage = 2;
+  int32 stage_version = 3;
+  int32 retriage_count = 4;
+  repeated string seen_event_ids = 5;
+  repeated ClaimEvent pending_events = 6;
+  repeated PaymentResult payments = 7;
+  string route_reason = 8;
+  bool reopened = 9;
+  DecisionPolicy policy = 10;
+}

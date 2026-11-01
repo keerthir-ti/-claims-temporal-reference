@@ -1,0 +1,13 @@
+[project]
+name = "claims-runtime"
+version = "1.0.0"
+description = "Shared runtime for the Python workers: Temporal connection, payload encryption, decisions, projection rows"
+requires-python = ">=3.11"
+dependencies = ["temporalio==1.34.0", "cryptography>=43", "python-json-logger>=3.2", "PyYAML>=6.0"]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["claims_runtime"]

@@ -6,7 +6,7 @@ import os
 import psycopg
 from temporalio import activity
 
-from claims.v1 import systems_pb2
+from claims import systems_pb2
 
 
 class MockCoverageAnalyst:

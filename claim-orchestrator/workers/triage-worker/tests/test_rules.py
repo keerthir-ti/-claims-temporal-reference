@@ -1,6 +1,6 @@
 import asyncio
 
-from claims.v1 import systems_pb2
+from claims import systems_pb2
 from triage_worker.rules import TriageRules
 
 RULES = TriageRules("/app/config/triage-rules.yaml")

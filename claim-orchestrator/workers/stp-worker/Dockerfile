@@ -5,7 +5,7 @@ FROM maven:3.9-eclipse-temurin-25 AS build
 WORKDIR /src
 COPY pom.xml .
 COPY contracts contracts
-COPY shared/runtime-jvm shared/runtime-jvm
+COPY worker-runtime/java worker-runtime/java
 COPY workers/lifecycle-worker workers/lifecycle-worker
 COPY workers/stp-worker workers/stp-worker
 RUN --mount=type=cache,target=/root/.m2 mvn -B -q -pl workers/stp-worker -am package -DskipTests

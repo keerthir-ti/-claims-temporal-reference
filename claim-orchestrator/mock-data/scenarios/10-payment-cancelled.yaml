@@ -1,0 +1,13 @@
+description: Payment above authority is cancelled in ClaimsPro while it awaits approval; an adjuster closes the claim
+claim: { line_of_business: AUTO, company: CO1, channel: WEB, state: OH, claimed_amount_cents: 1900000, adjuster_id: adj-111 }
+behaviour:
+  ai: { fraud_score: 0.05, complexity: 0.2, confidence: 0.95 }
+  eClaims: { estimate: { amount_cents: 1800000, delay_seconds: 3 } }
+demo:
+  expect: CLOSED
+  steps:
+    - wait: { decision: PAYMENT_APPROVAL }
+    - change: payment_cancelled
+    - wait: { decision: MANUAL_HANDLING }
+    - decide: { choice: CLOSE, as: adj-111, roles: [adjuster], expect: rejected }
+    - decide: { choice: CLOSE, as: adj-111, roles: [adjuster], reason: customer withdrew the claim }

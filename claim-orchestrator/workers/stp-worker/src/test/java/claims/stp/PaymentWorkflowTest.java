@@ -3,12 +3,12 @@ package claims.stp;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import claims.contracts.v1.CancelPayment;
-import claims.contracts.v1.Decision;
-import claims.contracts.v1.OpenDecision;
-import claims.contracts.v1.PaymentRequest;
-import claims.contracts.v1.PaymentResult;
-import claims.contracts.v1.PaymentStatus;
+import claims.contracts.CancelPayment;
+import claims.contracts.Decision;
+import claims.contracts.OpenDecision;
+import claims.contracts.PaymentRequest;
+import claims.contracts.PaymentResult;
+import claims.contracts.PaymentStatus;
 import claims.runtime.Names;
 import claims.stp.workflows.PaymentWorkflow;
 import io.temporal.client.WorkflowClient;

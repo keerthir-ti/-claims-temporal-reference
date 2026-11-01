@@ -1,7 +1,7 @@
 package claims.stp.activities;
 
-import claims.contracts.v1.CoverageResult;
-import claims.contracts.v1.StepRequest;
+import claims.contracts.CoverageResult;
+import claims.contracts.StepRequest;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 

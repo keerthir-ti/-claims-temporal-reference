@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package claims;
+
+option java_package = "claims.contracts";
+option java_multiple_files = true;
+
+// Stage of a claim. Only ClaimLifecycleWorkflow changes it.
+enum Stage {
+  STAGE_UNSPECIFIED = 0;
+  STAGE_TRIAGE = 1;
+  STAGE_INVESTIGATION = 2;
+  STAGE_STP = 3;
+  STAGE_MANUAL = 4;
+  STAGE_ESCALATION = 5;
+  STAGE_SIU = 6;
+  STAGE_REOPEN_REVIEW = 7;
+  STAGE_CLOSED = 8;
+}
+
+// Track child workflows started by the parent, one per visit.
+enum Track {
+  TRACK_UNSPECIFIED = 0;
+  TRACK_TRIAGE = 1;
+  TRACK_INVESTIGATION = 2;
+  TRACK_STP = 3;
+}
+
+// Carried by every activity that writes. The activity refuses when the claim has moved to a newer
+// stage version, and uses claim_id:stage_version:step as its idempotency key.
+message StepRef {
+  string claim_id = 1;
+  int32 stage_version = 2;
+  string step = 3;
+}

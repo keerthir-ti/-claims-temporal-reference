@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Java classes generated from claims/v1/*.proto. Python classes come from the same files. -->
+<!-- Java classes generated from claims/*.proto. Python classes come from the same files. -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <parent><groupId>claims</groupId><artifactId>claim-orchestrator</artifactId><version>1.0.0</version><relativePath>../pom.xml</relativePath></parent>
+  <parent><groupId>claims.orchestrator</groupId><artifactId>claim-orchestrator</artifactId><version>1.0.0</version><relativePath>../pom.xml</relativePath></parent>
   <artifactId>contracts</artifactId>
 
   <dependencies>
@@ -23,7 +23,7 @@
         <configuration>
           <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protocArtifact>
           <protoSourceRoot>${project.basedir}</protoSourceRoot>
-          <includes><include>claims/v1/*.proto</include></includes>
+          <includes><include>claims/*.proto</include></includes>
         </configuration>
         <executions><execution><goals><goal>compile</goal></goals></execution></executions>
       </plugin>

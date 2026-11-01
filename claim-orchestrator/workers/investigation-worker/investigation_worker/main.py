@@ -9,7 +9,7 @@ from temporalio.worker import Worker
 
 from claims_runtime import logs, names
 from claims_runtime.connection import connect
-from claims_runtime.deployment import pinned
+from claims_runtime.versioning import pinned
 from investigation_worker.mock_ai import MockCoverageAnalyst
 from investigation_worker.workflow import InvestigationWorkflow
 

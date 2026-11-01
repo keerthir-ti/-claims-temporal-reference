@@ -1,0 +1,12 @@
+description: Injury reported during STP; re-triage sends it to an adjuster, who returns it to STP
+claim: { line_of_business: HOME, company: CO1, channel: PHONE, state: OH, claimed_amount_cents: 300000, adjuster_id: adj-102 }
+behaviour:
+  ai: { fraud_score: 0.1, complexity: 0.3, confidence: 0.9 }
+  eClaims: { estimate: { amount_cents: 280000, delay_seconds: 20 } }
+demo:
+  expect: CLOSED
+  steps:
+    - wait: { step: stp.dispatch.1 }
+    - change: injury_reported
+    - wait: { decision: MANUAL_HANDLING }
+    - decide: { choice: RETURN_TO_STP, as: adj-102, roles: [adjuster] }

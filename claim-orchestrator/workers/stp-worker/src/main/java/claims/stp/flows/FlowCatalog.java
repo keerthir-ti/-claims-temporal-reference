@@ -1,7 +1,7 @@
 package claims.stp.flows;
 
-import claims.contracts.v1.ClaimSnapshot;
-import claims.contracts.v1.FlowDefinition;
+import claims.contracts.ClaimSnapshot;
+import claims.contracts.FlowDefinition;
 import claims.stp.activities.FlowActivities;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,7 +20,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 /**
- * STP flow definitions from config/flows/*.yaml (produced from the variations tool). Only registered
+ * STP flow definitions from config/stp-flows/*.yaml (produced from the variations tool). Only registered
  * steps are allowed, in a valid order; every file is validated at worker start. The most specific match
  * on line of business, company, channel and state wins. Real implementation: keep it.
  */

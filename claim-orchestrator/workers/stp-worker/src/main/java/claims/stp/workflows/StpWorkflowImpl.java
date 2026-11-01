@@ -1,38 +1,38 @@
 package claims.stp.workflows;
 
-import claims.contracts.v1.AppraisalResult;
-import claims.contracts.v1.ClaimEvent;
-import claims.contracts.v1.ClaimEventType;
-import claims.contracts.v1.ClaimRef;
-import claims.contracts.v1.ClaimSnapshot;
-import claims.contracts.v1.CloseClaimRequest;
-import claims.contracts.v1.ContactResult;
-import claims.contracts.v1.CoverageResult;
-import claims.contracts.v1.Decision;
-import claims.contracts.v1.DecisionKind;
-import claims.contracts.v1.DecisionPolicy;
-import claims.contracts.v1.DecisionResult;
-import claims.contracts.v1.DispatchResult;
-import claims.contracts.v1.EstimateResult;
-import claims.contracts.v1.FlowDefinition;
-import claims.contracts.v1.PaymentRequest;
-import claims.contracts.v1.PaymentResult;
-import claims.contracts.v1.PaymentStatus;
-import claims.contracts.v1.PolicyRequest;
-import claims.contracts.v1.ReserveRequest;
-import claims.contracts.v1.ReserveResult;
-import claims.contracts.v1.StepRef;
-import claims.contracts.v1.StepRequest;
-import claims.contracts.v1.TrackOutcome;
-import claims.contracts.v1.TrackRequest;
-import claims.contracts.v1.TrackResult;
+import claims.contracts.AppraisalResult;
+import claims.contracts.ClaimEvent;
+import claims.contracts.ClaimEventType;
+import claims.contracts.ClaimRef;
+import claims.contracts.ClaimSnapshot;
+import claims.contracts.CloseClaimRequest;
+import claims.contracts.ContactResult;
+import claims.contracts.CoverageResult;
+import claims.contracts.Decision;
+import claims.contracts.DecisionKind;
+import claims.contracts.DecisionPolicy;
+import claims.contracts.DecisionResult;
+import claims.contracts.DispatchResult;
+import claims.contracts.EstimateResult;
+import claims.contracts.FlowDefinition;
+import claims.contracts.PaymentRequest;
+import claims.contracts.PaymentResult;
+import claims.contracts.PaymentStatus;
+import claims.contracts.PolicyRequest;
+import claims.contracts.ReserveRequest;
+import claims.contracts.ReserveResult;
+import claims.contracts.StepRef;
+import claims.contracts.StepRequest;
+import claims.contracts.TrackOutcome;
+import claims.contracts.TrackRequest;
+import claims.contracts.TrackResult;
 import claims.runtime.Names;
 import claims.runtime.SearchAttrs;
 import claims.runtime.activities.ClaimsProActivities;
 import claims.runtime.workflow.DecisionDesk;
-import claims.runtime.workflow.Recorder;
-import claims.runtime.workflow.Steps;
-import claims.runtime.workflow.Stubs;
+import claims.runtime.workflow.HistoryRecorder;
+import claims.runtime.workflow.StepRunner;
+import claims.runtime.workflow.ActivityStubs;
 import claims.stp.activities.CommHubActivities;
 import claims.stp.activities.EClaimsActivities;
 import claims.stp.activities.FlowActivities;
@@ -62,22 +62,22 @@ public class StpWorkflowImpl implements StpWorkflow {
   private DecisionDesk desk;
 
   private TrackRequest request;
-  private Recorder recorder;
-  private Steps steps;
+  private HistoryRecorder recorder;
+  private StepRunner steps;
   private ClaimsProActivities claimsPro;
   private CommHubActivities commHub;
   private PolicyGateActivities policyGate;
   private EClaimsActivities eClaims;
   private FlowActivities flows;
-  private long baselineVersion;
+  private ClaimSnapshot baseline;
   private String flowRef = "";
 
   @Override
   public TrackResult run(TrackRequest request) {
     this.request = request;
-    recorder = new Recorder(request.getClaimId(), Names.STP);
+    recorder = new HistoryRecorder(request.getClaimId(), Names.STP);
     desk = new DecisionDesk(request.getClaimId(), request::getStageVersion, recorder);
-    steps = new Steps(desk);
+    steps = new StepRunner(desk);
     request.getBufferedEventsList().forEach(this::claimEvent);
     try {
       return runFlow();
@@ -89,27 +89,27 @@ public class StpWorkflowImpl implements StpWorkflow {
         }).run();
         throw f;
       }
-      if (f instanceof ActivityFailure af && Steps.isBusiness(af)) {
-        return finish(TrackOutcome.ROUTE_MANUAL, Steps.businessType(af) + ": " + af.getCause().getMessage());
+      if (f instanceof ActivityFailure af && StepRunner.isBusiness(af)) {
+        return finish(TrackOutcome.ROUTE_MANUAL, StepRunner.businessType(af) + ": " + af.getCause().getMessage());
       }
       throw f;
-    } catch (Steps.Stopped stopped) {
+    } catch (StepRunner.Stopped stopped) {
       return finish(TrackOutcome.ROUTE_MANUAL, stopped.getMessage());
     }
   }
 
   private TrackResult runFlow() {
-    DecisionPolicy policy = Stubs.policy().load(PolicyRequest.newBuilder().setClaimId(claimId()).build());
+    DecisionPolicy policy = ActivityStubs.policy().load(PolicyRequest.newBuilder().setClaimId(claimId()).build());
     desk.setPolicy(policy);
-    Duration window = Stubs.retryWindow(policy);
-    claimsPro = Stubs.claimsPro(window);
-    commHub = Workflow.newActivityStub(CommHubActivities.class, Stubs.options(Names.STP_QUEUE, Duration.ofSeconds(30), window));
-    policyGate = Workflow.newActivityStub(PolicyGateActivities.class, Stubs.options(Names.STP_QUEUE, Duration.ofSeconds(30), window));
-    eClaims = Workflow.newActivityStub(EClaimsActivities.class, Stubs.options(Names.STP_QUEUE, Duration.ofSeconds(30), window));
-    flows = Workflow.newActivityStub(FlowActivities.class, Stubs.options(Names.STP_QUEUE, Duration.ofSeconds(10), window));
+    Duration window = ActivityStubs.retryWindow(policy);
+    claimsPro = ActivityStubs.claimsPro(window);
+    commHub = Workflow.newActivityStub(CommHubActivities.class, ActivityStubs.options(Names.STP_QUEUE, Duration.ofSeconds(30), window));
+    policyGate = Workflow.newActivityStub(PolicyGateActivities.class, ActivityStubs.options(Names.STP_QUEUE, Duration.ofSeconds(30), window));
+    eClaims = Workflow.newActivityStub(EClaimsActivities.class, ActivityStubs.options(Names.STP_QUEUE, Duration.ofSeconds(30), window));
+    flows = Workflow.newActivityStub(FlowActivities.class, ActivityStubs.options(Names.STP_QUEUE, Duration.ofSeconds(10), window));
 
     ClaimSnapshot claim = steps.run("stp.read", () -> claimsPro.readClaim(ref()));
-    baselineVersion = claim.getChangeVersion();
+    baseline = claim;
     FlowDefinition flow = steps.run("stp.flow", () -> flows.resolve(claim));
     flowRef = flow.getFlowId() + "@" + flow.getVersion() + "#" + flow.getContentHash();
     recorder.row(v(), "stp.flow").outcome(flowRef).reason(request.getReason()).write();
@@ -287,10 +287,10 @@ public class StpWorkflowImpl implements StpWorkflow {
     if (recheck) {
       recheck = false;
       ClaimSnapshot now = steps.run("stp.reread", () -> claimsPro.readClaim(ref()));
-      if (now.getChangeVersion() != baselineVersion) {
-        recorder.row(v(), "stp.material_change").outcome("RETRIAGE")
-            .reason("change version " + baselineVersion + " -> " + now.getChangeVersion()).write();
-        baselineVersion = now.getChangeVersion();
+      String reason = MaterialChange.detect(baseline, now); // a cosmetic change is not material
+      baseline = now;
+      if (reason != null) {
+        recorder.row(v(), "stp.material_change").outcome("RETRIAGE").reason(reason).write();
         return true;
       }
     }

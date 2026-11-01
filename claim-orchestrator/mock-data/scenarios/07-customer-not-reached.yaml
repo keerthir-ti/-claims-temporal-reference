@@ -1,0 +1,11 @@
+description: Customer not reached on the first call; adjuster asks for another attempt
+claim: { line_of_business: HOME, company: CO2, channel: WEB, state: IN, claimed_amount_cents: 150000, adjuster_id: adj-107 }
+behaviour:
+  ai: { fraud_score: 0.05, complexity: 0.2, confidence: 0.95 }
+  commHub: { unreachable_attempts: 1 }
+  eClaims: { estimate: { amount_cents: 140000, delay_seconds: 3 } }
+demo:
+  expect: CLOSED
+  steps:
+    - wait: { decision: CUSTOMER_NOT_REACHED }
+    - decide: { choice: RETRY_CONTACT, as: adj-107, roles: [adjuster] }

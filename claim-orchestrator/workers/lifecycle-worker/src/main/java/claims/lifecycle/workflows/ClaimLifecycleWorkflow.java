@@ -1,10 +1,10 @@
 package claims.lifecycle.workflows;
 
-import claims.contracts.v1.ClaimEvent;
-import claims.contracts.v1.ClaimStart;
-import claims.contracts.v1.Decision;
-import claims.contracts.v1.DecisionResult;
-import claims.contracts.v1.PaymentResult;
+import claims.contracts.ClaimEvent;
+import claims.contracts.ClaimStart;
+import claims.contracts.Decision;
+import claims.contracts.DecisionResult;
+import claims.contracts.PaymentResult;
 import claims.runtime.Names;
 import io.temporal.workflow.SignalMethod;
 import io.temporal.workflow.UpdateMethod;

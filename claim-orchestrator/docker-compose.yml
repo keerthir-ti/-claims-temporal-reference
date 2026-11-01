@@ -38,8 +38,8 @@ services:
     image: postgres:16-alpine
     environment: { POSTGRES_USER: claims, POSTGRES_PASSWORD: claims, POSTGRES_DB: claims }
     volumes:
-      - ./database/projection.sql:/docker-entrypoint-initdb.d/01-projection.sql:ro
-      - ./mock-data/schema.sql:/docker-entrypoint-initdb.d/02-mock.sql:ro
+      - ./database/projection-schema.sql:/docker-entrypoint-initdb.d/01-projection.sql:ro
+      - ./mock-data/mock-schema.sql:/docker-entrypoint-initdb.d/02-mock.sql:ro
     ports: ["${POSTGRES_HOST_PORT:-25432}:5432"]
     healthcheck: { test: ["CMD", "pg_isready", "-U", "claims"], interval: 3s, retries: 30 }
 
@@ -62,7 +62,7 @@ services:
     environment:
       <<: [*temporal-env, *db-env]
       SERVICE_NAME: stp-worker
-      FLOWS_DIR: /app/config/flows
+      FLOWS_DIR: /app/config/stp-flows
 
   claimspro-worker:
     <<: *worker
@@ -94,30 +94,30 @@ services:
       SERVICE_NAME: investigation-worker
 
   # Mock application: delivers change events like the event bridge (keeps running).
-  event-feed:
+  event-bridge-simulator:
     <<: *worker
-    build: { context: ., dockerfile: tools/claim-sim/Dockerfile, target: runtime }
-    image: claim-orchestrator/claim-sim:${BUILD_ID:-v1}
+    build: { context: ., dockerfile: application-simulator/Dockerfile, target: runtime }
+    image: claim-orchestrator/application-simulator:${BUILD_ID:-v1}
     command: ["feed"]
     environment:
       <<: [*temporal-env, *db-env]
       METRICS_PORT: "0"
 
   # Mock application, one-off commands: docker compose run --rm sim run
-  sim:
+  simulator:
     profiles: ["tools"]
-    image: claim-orchestrator/claim-sim:${BUILD_ID:-v1}
+    image: claim-orchestrator/application-simulator:${BUILD_ID:-v1}
     environment:
       <<: [*temporal-env, *db-env]
       METRICS_PORT: "0"
-      SCENARIOS_DIR: /app/mock-data/claims
+      SCENARIOS_DIR: /app/mock-data/scenarios
 
-  promote-versions:
+  promote-worker-versions:
     profiles: ["setup"]
     image: temporalio/temporal:1.9.1
-    entrypoint: ["sh", "/promote-versions.sh"]
+    entrypoint: ["sh", "/promote-worker-versions.sh"]
     environment: { BUILD_ID: "${BUILD_ID:-v1}", TEMPORAL_ADDRESS: "temporal:7233" }
-    volumes: ["./deploy/promote-versions.sh:/promote-versions.sh:ro"]
+    volumes: ["./deploy/promote-worker-versions.sh:/promote-worker-versions.sh:ro"]
 
 volumes:
   archive:

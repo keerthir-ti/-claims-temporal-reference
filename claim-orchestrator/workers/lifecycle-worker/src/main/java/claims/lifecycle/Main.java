@@ -1,6 +1,6 @@
 package claims.lifecycle;
 
-import claims.contracts.v1.ArchiveRequest;
+import claims.contracts.ArchiveRequest;
 import claims.lifecycle.activities.ArchiveActivitiesImpl;
 import claims.lifecycle.activities.PolicyActivitiesImpl;
 import claims.lifecycle.activities.ProjectionActivitiesImpl;
@@ -9,7 +9,7 @@ import claims.lifecycle.workflows.ArchiveWorkflowImpl;
 import claims.lifecycle.workflows.ClaimLifecycleWorkflowImpl;
 import claims.runtime.Env;
 import claims.runtime.Names;
-import claims.runtime.fence.Database;
+import claims.runtime.db.Database;
 import claims.runtime.temporal.TemporalConnection;
 import claims.runtime.temporal.WorkerSettings;
 import io.temporal.client.WorkflowClient;

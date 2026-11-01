@@ -1,0 +1,7 @@
+description: Catastrophe flow in Texas; the estimate event is lost and the timer re-read finds the estimate
+claim: { line_of_business: AUTO, company: CO1, channel: CAT, state: TX, claimed_amount_cents: 350000, adjuster_id: adj-106 }
+behaviour:
+  ai: { fraud_score: 0.05, complexity: 0.2, confidence: 0.95 }
+  eClaims: { estimate: { amount_cents: 340000, delay_seconds: 3, drop_event: true } }
+demo:
+  expect: CLOSED

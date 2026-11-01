@@ -5,9 +5,9 @@ from datetime import timedelta
 from temporalio import workflow
 
 with workflow.unsafe.imports_passed_through():
-    from claims.v1 import common_pb2, decisions_pb2, events_pb2, systems_pb2, tracks_pb2
+    from claims import common_pb2, decisions_pb2, events_pb2, systems_pb2, tracks_pb2
     from claims_runtime import names
-    from claims_runtime.workflow_support import (DEADLINE_PASSED, DecisionDesk, Recorder, Stopped, claimspro,
+    from claims_runtime.workflow_helpers import (DEADLINE_PASSED, DecisionDesk, HistoryRecorder, Stopped, claimspro,
                                                  is_business, load_policy, retry_policy, retry_window, run_step)
     from temporalio.exceptions import ActivityError, CancelledError
 
@@ -24,7 +24,7 @@ class TriageWorkflow:
     @workflow.init
     def __init__(self, request: tracks_pb2.TrackRequest) -> None:
         self._req = request
-        self._recorder = Recorder(request.claim_id, names.TRIAGE)
+        self._recorder = HistoryRecorder(request.claim_id, names.TRIAGE)
         self._desk = DecisionDesk(request.claim_id, request.stage_version, self._recorder)
         self._changed = False
 

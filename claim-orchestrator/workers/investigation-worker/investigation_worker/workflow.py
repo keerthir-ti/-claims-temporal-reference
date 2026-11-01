@@ -5,9 +5,9 @@ from datetime import timedelta
 from temporalio import workflow
 
 with workflow.unsafe.imports_passed_through():
-    from claims.v1 import decisions_pb2, events_pb2, systems_pb2, tracks_pb2
+    from claims import decisions_pb2, events_pb2, systems_pb2, tracks_pb2
     from claims_runtime import names
-    from claims_runtime.workflow_support import (DecisionDesk, Recorder, Stopped, claimspro, is_business,
+    from claims_runtime.workflow_helpers import (DecisionDesk, HistoryRecorder, Stopped, claimspro, is_business,
                                                  load_policy, retry_policy, retry_window, run_step)
     from temporalio.exceptions import ActivityError, CancelledError
 
@@ -17,7 +17,7 @@ class InvestigationWorkflow:
     @workflow.init
     def __init__(self, request: tracks_pb2.TrackRequest) -> None:
         self._req = request
-        self._recorder = Recorder(request.claim_id, names.INVESTIGATION)
+        self._recorder = HistoryRecorder(request.claim_id, names.INVESTIGATION)
         self._desk = DecisionDesk(request.claim_id, request.stage_version, self._recorder)
         self._documents = any(e.type == events_pb2.DOCUMENTS_RECEIVED for e in request.buffered_events)
 
@@ -57,7 +57,7 @@ class InvestigationWorkflow:
                                    lambda: claimspro("readClaim", ref, systems_pb2.ClaimSnapshot, window))
             analysis = await run_step(self._desk, "is.coverage", lambda: workflow.execute_activity(
                 "Ai.analyzeCoverage", claim, start_to_close_timeout=timedelta(seconds=60),
-                retry_policy=retry_policy(), result_type=systems_pb2.CoverageAnalysis))
+                retry_policy=_ai_retry(), result_type=systems_pb2.CoverageAnalysis))
             await self._recorder.row(v, f"is.analysis.{attempt}",
                                      outcome="COMPLETE" if analysis.information_complete else "MISSING",
                                      reason=analysis.missing)
@@ -88,3 +88,10 @@ class InvestigationWorkflow:
     @decide.validator
     def validate_decide(self, decision: decisions_pb2.Decision) -> None:
         self._desk.validate(decision)
+
+
+def _ai_retry():
+    """AI calls are capped: an AI outage goes to a person instead of retrying a paid model forever."""
+    policy = retry_policy()
+    policy.maximum_attempts = 5
+    return policy

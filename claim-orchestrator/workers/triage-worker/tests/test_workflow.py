@@ -1,18 +1,20 @@
-"""TriageWorkflow on the time-skipping test server. The Java-hosted activities (ClaimsPro, projection,
+"""TriageWorkflow on a local Temporal dev server (with the search attributes the workflows use). The Java-hosted activities (ClaimsPro, projection,
 policy) are faked here under the same names and task queues."""
 import uuid
 
 import pytest
 from temporalio import activity
 from temporalio.client import WorkflowUpdateFailedError
+from temporalio.common import SearchAttributeKey
 from temporalio.testing import WorkflowEnvironment
 from temporalio.worker import Worker
 
-from claims.v1 import decisions_pb2, projection_pb2, systems_pb2, tracks_pb2
+from claims import decisions_pb2, projection_pb2, systems_pb2, tracks_pb2
 from claims_runtime import names
 from triage_worker.rules import TriageRules
 from triage_worker.workflow import TriageWorkflow
 
+SEARCH_ATTRIBUTES = [SearchAttributeKey.for_keyword(n) for n in ("ClaimId", "Stage", "Track", "OpenDecision")]
 TASKS: dict[str, decisions_pb2.OpenDecision] = {}
 RISK = systems_pb2.RiskAssessment()
 
@@ -69,7 +71,7 @@ async def run_triage(env: WorkflowEnvironment, decide=None) -> tracks_pb2.TrackR
 async def test_straight_through_route():
     global RISK
     RISK = systems_pb2.RiskAssessment(fraud_score=0.1, confidence=0.95)
-    async with await WorkflowEnvironment.start_time_skipping() as env:
+    async with await WorkflowEnvironment.start_local(search_attributes=SEARCH_ATTRIBUTES) as env:
         result = await run_triage(env)
     assert result.outcome == tracks_pb2.ROUTE_STP
 
@@ -91,6 +93,6 @@ async def test_low_confidence_goes_to_a_triage_adjuster():
             decision_id=decision_id, choice="SIU", actor_id="tri-1", actor_roles=["triage-adjuster"]),
             result_type=decisions_pb2.DecisionResult)
 
-    async with await WorkflowEnvironment.start_time_skipping() as env:
+    async with await WorkflowEnvironment.start_local(search_attributes=SEARCH_ATTRIBUTES) as env:
         result = await run_triage(env, decide)
     assert result.outcome == tracks_pb2.ROUTE_SIU

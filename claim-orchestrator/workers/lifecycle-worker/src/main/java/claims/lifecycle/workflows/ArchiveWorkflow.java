@@ -1,7 +1,7 @@
 package claims.lifecycle.workflows;
 
-import claims.contracts.v1.ArchiveReport;
-import claims.contracts.v1.ArchiveRequest;
+import claims.contracts.ArchiveReport;
+import claims.contracts.ArchiveRequest;
 import claims.runtime.Names;
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;

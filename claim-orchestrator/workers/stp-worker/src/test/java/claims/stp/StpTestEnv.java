@@ -1,14 +1,14 @@
 package claims.stp;
 
-import claims.contracts.v1.AppraisalResult;
-import claims.contracts.v1.ClaimRef;
-import claims.contracts.v1.ClaimSnapshot;
-import claims.contracts.v1.ContactResult;
-import claims.contracts.v1.CoverageResult;
-import claims.contracts.v1.DispatchResult;
-import claims.contracts.v1.EstimateResult;
-import claims.contracts.v1.FlowDefinition;
-import claims.contracts.v1.StepRequest;
+import claims.contracts.AppraisalResult;
+import claims.contracts.ClaimRef;
+import claims.contracts.ClaimSnapshot;
+import claims.contracts.ContactResult;
+import claims.contracts.CoverageResult;
+import claims.contracts.DispatchResult;
+import claims.contracts.EstimateResult;
+import claims.contracts.FlowDefinition;
+import claims.contracts.StepRequest;
 import claims.runtime.Names;
 import claims.runtime.testing.FakeSystems;
 import claims.stp.activities.CommHubActivities;

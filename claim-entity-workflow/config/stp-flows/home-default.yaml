@@ -1,0 +1,14 @@
+flow_id: home-default
+version: 1
+match: { line_of_business: HOME }
+stages:
+  - { name: contact,    steps: [CONTACT_CUSTOMER],             interruptible: true }
+  - { name: coverage,   steps: [VERIFY_COVERAGE],              interruptible: true }
+  - { name: reserve,    steps: [OPEN_RESERVE],                 interruptible: true }
+  - { name: inspection, steps: [DISPATCH, ASSIGN_APPRAISAL],   interruptible: true }
+  - { name: estimate,   steps: [AWAIT_ESTIMATE],               interruptible: true }
+  - { name: pay,        steps: [PAY] }
+  - { name: close,      steps: [CLOSE_CLAIM] }
+estimate_review_cents: 1500000
+estimate_recheck_seconds: 60
+vendors_per_round: 3

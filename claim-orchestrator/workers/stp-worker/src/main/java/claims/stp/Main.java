@@ -3,15 +3,17 @@ package claims.stp;
 import claims.runtime.Env;
 import claims.runtime.Names;
 import claims.runtime.activities.ClaimsProActivities;
-import claims.runtime.fence.Database;
-import claims.runtime.fence.StageFence;
+import claims.runtime.db.Database;
+import claims.runtime.stage.StageVersionCheck;
 import claims.runtime.temporal.TemporalConnection;
 import claims.runtime.temporal.WorkerSettings;
-import claims.stp.activities.FencedActivities;
+import claims.stp.activities.StageCheckedActivities;
 import claims.stp.flows.FlowCatalog;
 import claims.stp.mock.MockClaimsProActivities;
-import claims.stp.mock.MockStpSystemsActivities;
-import claims.stp.mock.MockSystems;
+import claims.stp.mock.MockCommHubActivities;
+import claims.stp.mock.MockEClaimsActivities;
+import claims.stp.mock.MockPolicyGateActivities;
+import claims.stp.mock.MockDataStore;
 import claims.stp.workflows.PaymentWorkflowImpl;
 import claims.stp.workflows.StpWorkflowImpl;
 import io.temporal.client.WorkflowClient;
@@ -31,7 +33,7 @@ import org.slf4j.LoggerFactory;
  * </pre>
  *
  * Replacing mocks: construct the real implementations where the Mock* classes are created below. The
- * stage-version check (FencedActivities) wraps whatever is registered.
+ * stage-version check (StageCheckedActivities) wraps whatever is registered.
  */
 public final class Main {
   private static final Logger log = LoggerFactory.getLogger(Main.class);
@@ -41,8 +43,8 @@ public final class Main {
   public static void main(String[] args) {
     String role = args.length > 0 ? args[0] : "stp";
     WorkflowClient client = TemporalConnection.client(TemporalConnection.service());
-    StageFence fence = new StageFence(Database.pool("PROJECTION", Env.getInt("DB_POOL_SIZE", 10)));
-    MockSystems mock = new MockSystems(Database.pool("MOCK", Env.getInt("DB_POOL_SIZE", 10)));
+    StageVersionCheck fence = new StageVersionCheck(Database.pool("PROJECTION", Env.getInt("DB_POOL_SIZE", 10)));
+    MockDataStore mock = new MockDataStore(Database.pool("MOCK", Env.getInt("DB_POOL_SIZE", 10)));
     WorkerFactory factory = WorkerFactory.newInstance(client);
 
     switch (role) {
@@ -52,13 +54,13 @@ public final class Main {
             WorkerSettings.options(Names.STP_DEPLOYMENT, VersioningBehavior.PINNED).build());
         w.registerWorkflowImplementationTypes(StpWorkflowImpl.class, PaymentWorkflowImpl.class);
         w.registerActivitiesImplementations(
-            FencedActivities.commHub(new MockStpSystemsActivities.CommHub(mock), fence),
-            new MockStpSystemsActivities.PolicyGate(mock),
-            FencedActivities.eClaims(new MockStpSystemsActivities.EClaims(mock), fence),
-            new FlowCatalog(Path.of(Env.get("FLOWS_DIR", "config/flows"))));
+            StageCheckedActivities.commHub(new MockCommHubActivities(mock), fence),
+            new MockPolicyGateActivities(mock),
+            StageCheckedActivities.eClaims(new MockEClaimsActivities(mock), fence),
+            new FlowCatalog(Path.of(Env.get("FLOWS_DIR", "config/stp-flows"))));
       }
       case "claimspro" -> {
-        ClaimsProActivities claimsPro = FencedActivities.claimsPro(new MockClaimsProActivities(mock), fence);
+        ClaimsProActivities claimsPro = StageCheckedActivities.claimsPro(new MockClaimsProActivities(mock), fence);
         Worker w = factory.newWorker(Names.CLAIMSPRO_QUEUE,
             WorkerSettings.options(Names.CLAIMSPRO_DEPLOYMENT, VersioningBehavior.PINNED)
                 // Server-enforced across all pollers of the queue: ClaimsPro's agreed request rate.

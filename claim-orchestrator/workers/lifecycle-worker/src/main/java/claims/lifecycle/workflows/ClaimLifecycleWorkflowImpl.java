@@ -1,45 +1,47 @@
 package claims.lifecycle.workflows;
 
-import static claims.contracts.v1.Stage.STAGE_CLOSED;
-import static claims.contracts.v1.Stage.STAGE_ESCALATION;
-import static claims.contracts.v1.Stage.STAGE_INVESTIGATION;
-import static claims.contracts.v1.Stage.STAGE_MANUAL;
-import static claims.contracts.v1.Stage.STAGE_REOPEN_REVIEW;
-import static claims.contracts.v1.Stage.STAGE_SIU;
-import static claims.contracts.v1.Stage.STAGE_STP;
-import static claims.contracts.v1.Stage.STAGE_TRIAGE;
+import static claims.contracts.Stage.STAGE_CLOSED;
+import static claims.contracts.Stage.STAGE_ESCALATION;
+import static claims.contracts.Stage.STAGE_INVESTIGATION;
+import static claims.contracts.Stage.STAGE_MANUAL;
+import static claims.contracts.Stage.STAGE_REOPEN_REVIEW;
+import static claims.contracts.Stage.STAGE_SIU;
+import static claims.contracts.Stage.STAGE_STP;
+import static claims.contracts.Stage.STAGE_TRIAGE;
 
-import claims.contracts.v1.ClaimEvent;
-import claims.contracts.v1.ClaimRef;
-import claims.contracts.v1.ClaimSnapshot;
-import claims.contracts.v1.ClaimStart;
-import claims.contracts.v1.ClaimState;
-import claims.contracts.v1.CloseClaimRequest;
-import claims.contracts.v1.Decision;
-import claims.contracts.v1.DecisionKind;
-import claims.contracts.v1.DecisionPolicy;
-import claims.contracts.v1.DecisionResult;
-import claims.contracts.v1.PaymentResult;
-import claims.contracts.v1.PolicyRequest;
-import claims.contracts.v1.RecordCheck;
-import claims.contracts.v1.Stage;
-import claims.contracts.v1.StageChange;
-import claims.contracts.v1.StepRef;
-import claims.contracts.v1.Track;
-import claims.contracts.v1.TrackOutcome;
-import claims.contracts.v1.TrackRequest;
-import claims.contracts.v1.TrackResult;
+import claims.contracts.CancelPayment;
+import claims.contracts.ClaimEvent;
+import claims.contracts.ClaimRef;
+import claims.contracts.ClaimSnapshot;
+import claims.contracts.ClaimStart;
+import claims.contracts.ClaimState;
+import claims.contracts.CloseClaimRequest;
+import claims.contracts.Decision;
+import claims.contracts.DecisionKind;
+import claims.contracts.DecisionPolicy;
+import claims.contracts.DecisionResult;
+import claims.contracts.PaymentResult;
+import claims.contracts.PolicyRequest;
+import claims.contracts.RecordCheck;
+import claims.contracts.Stage;
+import claims.contracts.StageChange;
+import claims.contracts.StepRef;
+import claims.contracts.Track;
+import claims.contracts.TrackOutcome;
+import claims.contracts.TrackRequest;
+import claims.contracts.TrackResult;
 import claims.runtime.Names;
 import claims.runtime.SearchAttrs;
 import claims.runtime.activities.ClaimsProActivities;
 import claims.runtime.activities.ProjectionActivities;
 import claims.runtime.workflow.DecisionDesk;
-import claims.runtime.workflow.Recorder;
-import claims.runtime.workflow.Steps;
-import claims.runtime.workflow.Stubs;
+import claims.runtime.workflow.HistoryRecorder;
+import claims.runtime.workflow.StepRunner;
+import claims.runtime.workflow.ActivityStubs;
 import io.temporal.api.enums.v1.ParentClosePolicy;
 import io.temporal.common.SearchAttributes;
 import io.temporal.failure.TemporalFailure;
+import io.temporal.workflow.Async;
 import io.temporal.workflow.CancellationScope;
 import io.temporal.workflow.ChildWorkflowCancellationType;
 import io.temporal.workflow.ChildWorkflowOptions;
@@ -73,28 +75,33 @@ public class ClaimLifecycleWorkflowImpl implements ClaimLifecycleWorkflow {
   private String activeChildId;
   private String closedTrigger;
   private String reassignedTrigger;
+  private String reopenTrigger;
+  /** Payment cancellations to forward to the claim's payment workflow (from ClaimsPro, or the claim closing). */
+  private final Deque<String> paymentCancels = new ArrayDeque<>();
+  private int paymentCancelCount;
 
-  private final ProjectionActivities projection = Stubs.projection();
+  private final ProjectionActivities projection = ActivityStubs.projection();
   private ClaimState.Builder state;
-  private Recorder recorder;
+  private HistoryRecorder recorder;
   private DecisionDesk desk;
-  private Steps steps;
+  private StepRunner steps;
   private ClaimsProActivities claimsPro;
   private ProjectionActivities verifier;
 
   @Override
   public void run(ClaimStart start) {
     String claimId = start.getClaimId();
-    recorder = new Recorder(claimId, Names.CLAIM_LIFECYCLE);
+    recorder = new HistoryRecorder(claimId, Names.CLAIM_LIFECYCLE);
     state = ClaimState.newBuilder().setClaimId(claimId);
     desk = new DecisionDesk(claimId, () -> state.getStageVersion(), recorder);
-    steps = new Steps(desk);
+    steps = new StepRunner(desk);
 
     if (start.hasCarried()) {
       resume(start.getCarried());
     } else if (!begin(start)) {
       return;
     }
+    Async.procedure(this::forwardPaymentCancels);
 
     while (true) {
       if (closedTrigger != null && state.getStage() != STAGE_CLOSED) {
@@ -105,7 +112,9 @@ public class ClaimLifecycleWorkflowImpl implements ClaimLifecycleWorkflow {
         enter(STAGE_MANUAL, "reassigned in ClaimsPro", trigger);
       }
       if (state.getStage() == STAGE_CLOSED) {
-        finish();
+        if (reopenedWhileClosing()) {
+          continue;
+        }
         return;
       }
       if (Workflow.getInfo().isContinueAsNewSuggested() || Workflow.getInfo().getHistoryLength() > HISTORY_EVENT_LIMIT) {
@@ -114,7 +123,7 @@ public class ClaimLifecycleWorkflowImpl implements ClaimLifecycleWorkflow {
       }
       try {
         runStage();
-      } catch (Steps.Stopped stopped) {
+      } catch (StepRunner.Stopped stopped) {
         enter(STAGE_MANUAL, stopped.getMessage(), "");
       }
     }
@@ -127,7 +136,7 @@ public class ClaimLifecycleWorkflowImpl implements ClaimLifecycleWorkflow {
     if (!start.getStartEventId().isEmpty()) {
       seen.add(start.getStartEventId());
     }
-    DecisionPolicy policy = Stubs.policy().load(PolicyRequest.newBuilder().setClaimId(claimId).build());
+    DecisionPolicy policy = ActivityStubs.policy().load(PolicyRequest.newBuilder().setClaimId(claimId).build());
     usePolicy(policy);
     state.setReopened(start.getReopened());
     state.setStageVersion(projection.currentStage(ref()).getStageVersion()); // a reopen continues the numbering
@@ -160,10 +169,10 @@ public class ClaimLifecycleWorkflowImpl implements ClaimLifecycleWorkflow {
   private void usePolicy(DecisionPolicy policy) {
     state.setPolicy(policy);
     desk.setPolicy(policy);
-    Duration window = Stubs.retryWindow(policy);
-    claimsPro = Stubs.claimsPro(window);
+    Duration window = ActivityStubs.retryWindow(policy);
+    claimsPro = ActivityStubs.claimsPro(window);
     verifier = Workflow.newActivityStub(ProjectionActivities.class,
-        Stubs.options(Names.LIFECYCLE_QUEUE, Duration.ofSeconds(10), window));
+        ActivityStubs.options(Names.LIFECYCLE_QUEUE, Duration.ofSeconds(10), window));
   }
 
   // ---------------------------------------------------------------------------------------- stages
@@ -197,6 +206,10 @@ public class ClaimLifecycleWorkflowImpl implements ClaimLifecycleWorkflow {
   }
 
   private void retriage(String reason) {
+    if (state.getPolicy().getPilotStpOnly()) {
+      enter(STAGE_MANUAL, reason + " (pilot scope: no triage track; an adjuster decides)", "");
+      return;
+    }
     state.setRetriageCount(state.getRetriageCount() + 1);
     int limit = state.getPolicy().getRetriageLimit() > 0 ? state.getPolicy().getRetriageLimit() : 3;
     if (state.getRetriageCount() > limit) {
@@ -291,6 +304,9 @@ public class ClaimLifecycleWorkflowImpl implements ClaimLifecycleWorkflow {
     scope.run();
     child.getExecution().get(); // started
     activeChildId = childId;
+    if (track == Track.TRACK_STP) {
+      state.setLastStpStage(v); // the payment of this visit is claim:{id}:payment:{claimId}-v{v}-1
+    }
     recorder.row(v, "track.start:" + name).ref("workflow_id", childId).write();
 
     try {
@@ -343,6 +359,10 @@ public class ClaimLifecycleWorkflowImpl implements ClaimLifecycleWorkflow {
   // ----------------------------------------------------------------------------------- bookkeeping
 
   private void enter(Stage stage, String reason, String trigger) {
+    if (stage == STAGE_TRIAGE && state.getPolicy().getPilotStpOnly()) {
+      stage = STAGE_STP; // pilot scope: Claims Lifecycle -> STP only
+      reason = reason + " (pilot scope: straight to STP)";
+    }
     int v = state.getStageVersion() + 1;
     projection.beginStage(StageChange.newBuilder().setStep(step(v, "stage.begin")).setStage(stage).build());
     state.setStage(stage).setStageVersion(v).setRouteReason(reason == null ? "" : reason);
@@ -350,17 +370,52 @@ public class ClaimLifecycleWorkflowImpl implements ClaimLifecycleWorkflow {
     recorder.row(v, "stage:" + stage.name()).outcome(stage.name()).reason(reason).trigger(trigger).write();
   }
 
-  private void finish() {
+  /**
+   * The claim is closed: check its business record, then complete. A reopen that arrives meanwhile (Signal-With-Start
+   * reaches this run while it is still open) is reviewed in this run instead of being lost.
+   */
+  private boolean reopenedWhileClosing() {
     int v = state.getStageVersion();
     try {
       steps.run("record.verify", () -> verifier.verifyRecord(RecordCheck.newBuilder()
           .setClaimId(state.getClaimId()).setCurrentRunId(Workflow.getInfo().getRunId())
           .setCurrentSeq(recorder.lastSeq()).build()));
-    } catch (Steps.Stopped accepted) {
+    } catch (StepRunner.Stopped accepted) {
       recorder.row(v, "record.incomplete").outcome("ACCEPTED_BY_OPERATIONS").write();
     }
     Workflow.await(Workflow::isEveryHandlerFinished);
+    if (reopenTrigger != null) {
+      String trigger = reopenTrigger;
+      reopenTrigger = null;
+      closedTrigger = null;
+      reassignedTrigger = null;
+      enter(STAGE_REOPEN_REVIEW, "claim reopened while the workflow was closing", trigger);
+      return true;
+    }
     recorder.closing(v, "CLOSED");
+    return false;
+  }
+
+  /** Forwards each payment cancellation to the payment workflow of the latest STP visit, if one is running. */
+  private void forwardPaymentCancels() {
+    while (true) {
+      Workflow.await(() -> !paymentCancels.isEmpty());
+      String why = paymentCancels.poll();
+      int stp = state.getLastStpStage();
+      String step = "payment.cancel." + (++paymentCancelCount);
+      if (stp == 0) {
+        recorder.row(state.getStageVersion(), step).outcome("NO_PAYMENT").reason(why).write();
+        continue;
+      }
+      String paymentId = Names.paymentWorkflowId(state.getClaimId(), Names.paymentKey(state.getClaimId(), stp, 1));
+      try {
+        Workflow.newUntypedExternalWorkflowStub(paymentId).signal(Names.SIGNAL_CANCEL_PAYMENT,
+            CancelPayment.newBuilder().setRequestedBy("ClaimsPro").setReason(why).build());
+        recorder.row(state.getStageVersion(), step).outcome("FORWARDED").reason(why).ref("workflow_id", paymentId).write();
+      } catch (TemporalFailure noRunningPayment) {
+        recorder.row(state.getStageVersion(), step).outcome("NO_RUNNING_PAYMENT").reason(why).write();
+      }
+    }
   }
 
   private void continueAsNew() {
@@ -399,8 +454,17 @@ public class ClaimLifecycleWorkflowImpl implements ClaimLifecycleWorkflow {
       seen.remove(seen.iterator().next());
     }
     switch (e.getType()) {
-      case CLAIM_CREATED, CLAIM_REOPENED -> { } // the start event of this run, delivered by Signal-With-Start
-      case CLAIM_CLOSED -> closedTrigger = e.getEventId();
+      case CLAIM_CREATED -> { } // the start event of this run, delivered by Signal-With-Start
+      case CLAIM_REOPENED -> {
+        if (state != null && state.getStage() == STAGE_CLOSED) {
+          reopenTrigger = e.getEventId(); // reopened while this run is closing
+        }
+      }
+      case PAYMENT_CANCEL_REQUESTED -> paymentCancels.add("payment cancelled in ClaimsPro (event " + e.getEventId() + ")");
+      case CLAIM_CLOSED -> {
+        closedTrigger = e.getEventId();
+        paymentCancels.add("claim closed in ClaimsPro (event " + e.getEventId() + ")");
+      }
       case CLAIM_REASSIGNED -> reassignedTrigger = e.getEventId();
       default -> {
         if (activeChildId != null) {

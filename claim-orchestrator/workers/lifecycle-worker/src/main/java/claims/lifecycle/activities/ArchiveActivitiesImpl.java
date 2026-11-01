@@ -1,7 +1,7 @@
 package claims.lifecycle.activities;
 
-import claims.contracts.v1.ArchiveReport;
-import claims.contracts.v1.ArchiveRequest;
+import claims.contracts.ArchiveReport;
+import claims.contracts.ArchiveRequest;
 import claims.lifecycle.archive.ArchiveStore;
 import claims.runtime.Env;
 import com.fasterxml.jackson.databind.ObjectMapper;

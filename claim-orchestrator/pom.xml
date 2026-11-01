@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- JVM modules: contracts (generated from contracts/claims/v1), the shared worker runtime, and the
+<!-- JVM modules: contracts (generated from contracts/claims), the shared worker runtime, and the
      Lifecycle and STP workers. The Python workers build separately from the same contracts. -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>claims</groupId>
+  <groupId>claims.orchestrator</groupId>
   <artifactId>claim-orchestrator</artifactId>
   <version>1.0.0</version>
   <packaging>pom</packaging>
 
   <modules>
     <module>contracts</module>
-    <module>shared/runtime-jvm</module>
+    <module>worker-runtime/java</module>
     <module>workers/lifecycle-worker</module>
     <module>workers/stp-worker</module>
   </modules>
@@ -28,8 +28,8 @@
 
   <dependencyManagement>
     <dependencies>
-      <dependency><groupId>claims</groupId><artifactId>contracts</artifactId><version>${project.version}</version></dependency>
-      <dependency><groupId>claims</groupId><artifactId>runtime-jvm</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>claims.orchestrator</groupId><artifactId>contracts</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>claims.orchestrator</groupId><artifactId>worker-runtime</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>io.temporal</groupId><artifactId>temporal-sdk</artifactId><version>${temporal.version}</version></dependency>
       <dependency><groupId>io.temporal</groupId><artifactId>temporal-testing</artifactId><version>${temporal.version}</version></dependency>
       <dependency><groupId>com.google.protobuf</groupId><artifactId>protobuf-java</artifactId><version>${protobuf.version}</version></dependency>

@@ -2,11 +2,11 @@ package claims.stp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import claims.contracts.v1.ClaimEvent;
-import claims.contracts.v1.ClaimEventType;
-import claims.contracts.v1.TrackOutcome;
-import claims.contracts.v1.TrackRequest;
-import claims.contracts.v1.TrackResult;
+import claims.contracts.ClaimEvent;
+import claims.contracts.ClaimEventType;
+import claims.contracts.TrackOutcome;
+import claims.contracts.TrackRequest;
+import claims.contracts.TrackResult;
 import claims.runtime.Names;
 import claims.stp.workflows.StpWorkflow;
 import io.temporal.client.WorkflowClient;

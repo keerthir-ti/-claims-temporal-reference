@@ -1,10 +1,10 @@
 package claims.stp.activities;
 
-import claims.contracts.v1.AppraisalResult;
-import claims.contracts.v1.ClaimRef;
-import claims.contracts.v1.DispatchResult;
-import claims.contracts.v1.EstimateResult;
-import claims.contracts.v1.StepRequest;
+import claims.contracts.AppraisalResult;
+import claims.contracts.ClaimRef;
+import claims.contracts.DispatchResult;
+import claims.contracts.EstimateResult;
+import claims.contracts.StepRequest;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 

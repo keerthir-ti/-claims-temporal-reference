@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package claims;
+
+option java_package = "claims.contracts";
+option java_multiple_files = true;
+
+enum DecisionKind {
+  DECISION_KIND_UNSPECIFIED = 0;
+  TRIAGE_REVIEW = 1;
+  MANUAL_HANDLING = 2;
+  ESCALATION = 3;
+  SIU_REVIEW = 4;
+  COVERAGE_INFORMATION = 5;
+  CUSTOMER_NOT_REACHED = 6;
+  NO_VENDOR = 7;
+  ESTIMATE_REVIEW = 8;
+  PAYMENT_APPROVAL = 9;
+  REOPEN_REVIEW = 10;
+  OPERATIONS_EXCEPTION = 11;
+}
+
+// A decision the claim workflow is waiting for. The adjuster task created in ClaimsPro carries the
+// claim's workflow ID and the decision ID; the service behind Kong sends the Update to that workflow.
+message OpenDecision {
+  string decision_id = 1;
+  DecisionKind kind = 2;
+  string claim_id = 3;
+  string workflow_id = 4;
+  repeated string choices = 5;
+  string required_role = 6;
+  int64 required_authority_cents = 7;
+  string requested_by = 8;
+  int32 level = 9;
+  string task_id = 10;
+  int64 due_at_ms = 11;
+  string context = 12;
+  repeated string reason_required_choices = 13;
+}
+
+// Sent as the "decide" Update; decision_id is also the Update ID. The service behind Kong fills the
+// actor fields from the authenticated user.
+message Decision {
+  string decision_id = 1;
+  string choice = 2;
+  string actor_id = 3;
+  repeated string actor_roles = 4;
+  int64 actor_authority_cents = 5;
+  string reason = 6;
+}
+
+message DecisionResult {
+  string decision_id = 1;
+  string choice = 2;
+  string decided_by = 3;
+  string reason = 4;
+}
+
+// Settings for one decision kind, from config/decision-policy.yaml.
+message DecisionRule {
+  string role = 1;
+  int32 deadline_seconds = 2;
+  repeated string escalation_roles = 3;
+  repeated string reason_required_choices = 4;
+}
+
+message DecisionPolicy {
+  map<string, DecisionRule> rules = 1;   // key: DecisionKind name
+  int32 retriage_limit = 2;
+  int64 stp_payment_authority_cents = 3;
+  int32 retry_window_seconds = 4;
+  double triage_confidence_threshold = 5;
+  bool pilot_stp_only = 6;           // pilot scope: claims go from the lifecycle straight to STP (no TSA, IS)
+}
+
+message PolicyRequest {
+  string claim_id = 1;
+}

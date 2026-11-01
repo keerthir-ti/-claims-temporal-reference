@@ -1,10 +1,10 @@
 package claims.stp.workflows;
 
-import claims.contracts.v1.ClaimEvent;
-import claims.contracts.v1.Decision;
-import claims.contracts.v1.DecisionResult;
-import claims.contracts.v1.TrackRequest;
-import claims.contracts.v1.TrackResult;
+import claims.contracts.ClaimEvent;
+import claims.contracts.Decision;
+import claims.contracts.DecisionResult;
+import claims.contracts.TrackRequest;
+import claims.contracts.TrackResult;
 import claims.runtime.Names;
 import io.temporal.workflow.SignalMethod;
 import io.temporal.workflow.UpdateMethod;

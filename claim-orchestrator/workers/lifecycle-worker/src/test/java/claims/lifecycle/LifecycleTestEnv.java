@@ -1,9 +1,9 @@
 package claims.lifecycle;
 
-import claims.contracts.v1.ClaimStart;
-import claims.contracts.v1.TrackOutcome;
-import claims.contracts.v1.TrackRequest;
-import claims.contracts.v1.TrackResult;
+import claims.contracts.ClaimStart;
+import claims.contracts.TrackOutcome;
+import claims.contracts.TrackRequest;
+import claims.contracts.TrackResult;
 import claims.lifecycle.workflows.ClaimLifecycleWorkflow;
 import claims.lifecycle.workflows.ClaimLifecycleWorkflowImpl;
 import claims.runtime.Names;

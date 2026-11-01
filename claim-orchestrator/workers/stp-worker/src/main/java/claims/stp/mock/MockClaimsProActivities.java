@@ -1,18 +1,18 @@
 package claims.stp.mock;
 
-import claims.contracts.v1.ClaimRef;
-import claims.contracts.v1.ClaimSnapshot;
-import claims.contracts.v1.CloseClaimRequest;
-import claims.contracts.v1.CloseTaskRequest;
-import claims.contracts.v1.CreatePaymentRequest;
-import claims.contracts.v1.Done;
-import claims.contracts.v1.OpenDecision;
-import claims.contracts.v1.PaymentKeyRef;
-import claims.contracts.v1.PaymentRecord;
-import claims.contracts.v1.ReserveRequest;
-import claims.contracts.v1.ReserveResult;
-import claims.contracts.v1.TaskRef;
-import claims.contracts.v1.TaskRequest;
+import claims.contracts.ClaimRef;
+import claims.contracts.ClaimSnapshot;
+import claims.contracts.CloseClaimRequest;
+import claims.contracts.CloseTaskRequest;
+import claims.contracts.CreatePaymentRequest;
+import claims.contracts.Done;
+import claims.contracts.OpenDecision;
+import claims.contracts.PaymentKeyRef;
+import claims.contracts.PaymentRecord;
+import claims.contracts.ReserveRequest;
+import claims.contracts.ReserveResult;
+import claims.contracts.TaskRef;
+import claims.contracts.TaskRequest;
 import claims.runtime.activities.ActivityErrors;
 import claims.runtime.activities.ClaimsProActivities;
 import java.sql.Connection;
@@ -23,9 +23,9 @@ import java.sql.SQLException;
 /** Mock ClaimsPro over the mock schema. Replace with the real ClaimsPro service calls. */
 public class MockClaimsProActivities implements ClaimsProActivities {
   private static final Done DONE = Done.newBuilder().setOk(true).build();
-  private final MockSystems mock;
+  private final MockDataStore mock;
 
-  public MockClaimsProActivities(MockSystems mock) {
+  public MockClaimsProActivities(MockDataStore mock) {
     this.mock = mock;
   }
 
@@ -99,7 +99,7 @@ public class MockClaimsProActivities implements ClaimsProActivities {
         ON CONFLICT (idempotency_key) DO UPDATE SET idempotency_key = excluded.idempotency_key
         RETURNING reserve_id""";
     try (Connection c = mock.connection(); PreparedStatement ps = c.prepareStatement(sql)) {
-      ps.setString(1, MockSystems.key(request.getStep()));
+      ps.setString(1, MockDataStore.key(request.getStep()));
       ps.setString(2, request.getStep().getClaimId());
       ps.setLong(3, request.getAmountCents());
       try (ResultSet rs = ps.executeQuery()) {

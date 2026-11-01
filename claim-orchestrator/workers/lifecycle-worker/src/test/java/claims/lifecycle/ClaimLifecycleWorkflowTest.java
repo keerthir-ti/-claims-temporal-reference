@@ -4,12 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import claims.contracts.v1.ClaimEvent;
-import claims.contracts.v1.ClaimEventType;
-import claims.contracts.v1.Decision;
-import claims.contracts.v1.OpenDecision;
-import claims.contracts.v1.Stage;
-import claims.contracts.v1.TrackOutcome;
+import claims.contracts.ClaimEvent;
+import claims.contracts.ClaimEventType;
+import claims.contracts.Decision;
+import claims.contracts.OpenDecision;
+import claims.contracts.Stage;
+import claims.contracts.TrackOutcome;
 import claims.lifecycle.workflows.ClaimLifecycleWorkflow;
 import io.temporal.client.WorkflowStub;
 import io.temporal.client.WorkflowUpdateException;
@@ -60,6 +60,17 @@ class ClaimLifecycleWorkflowTest {
       assertEquals(Stage.STAGE_CLOSED, t.systems.stages.get("C3").getStage());
       assertTrue(t.systems.rows.stream().anyMatch(r -> r.getStep().equals("track.cancelled:stp")));
       assertTrue(t.systems.closedClaims.isEmpty(), "already closed in ClaimsPro: not closed again");
+    }
+  }
+
+  @Test
+  void pilotScopeGoesStraightToStp() {
+    try (LifecycleTestEnv t = new LifecycleTestEnv()) {
+      t.systems.policy = claims.runtime.testing.FakeSystems.defaultPolicy().toBuilder().setPilotStpOnly(true).build();
+      LifecycleTestEnv.STP.add(TrackOutcome.COMPLETED); // no triage outcome queued: a triage child would never end
+      WorkflowStub.fromTyped(t.start("C5")).getResult(Void.class);
+      assertTrue(t.systems.rows.stream().noneMatch(r -> r.getStep().equals("track.start:tsa")));
+      assertEquals(Stage.STAGE_CLOSED, t.systems.stages.get("C5").getStage());
     }
   }
 }

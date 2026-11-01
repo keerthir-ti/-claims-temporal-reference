@@ -1,0 +1,10 @@
+description: High fraud score; SIU denies the claim (a denial without a reason is rejected)
+claim: { line_of_business: AUTO, company: CO1, channel: WEB, state: TX, claimed_amount_cents: 900000, prior_claims: 5, adjuster_id: adj-104 }
+behaviour:
+  ai: { fraud_score: 0.92, complexity: 0.5, confidence: 0.9 }
+demo:
+  expect: CLOSED
+  steps:
+    - wait: { decision: SIU_REVIEW }
+    - decide: { choice: DENY, as: siu-7, roles: [siu-investigator], expect: rejected }   # no reason
+    - decide: { choice: DENY, as: siu-7, roles: [siu-investigator], reason: staged loss, prior claims pattern }

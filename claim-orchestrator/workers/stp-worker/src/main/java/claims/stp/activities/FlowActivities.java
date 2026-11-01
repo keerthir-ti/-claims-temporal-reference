@@ -1,7 +1,7 @@
 package claims.stp.activities;
 
-import claims.contracts.v1.ClaimSnapshot;
-import claims.contracts.v1.FlowDefinition;
+import claims.contracts.ClaimSnapshot;
+import claims.contracts.FlowDefinition;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 

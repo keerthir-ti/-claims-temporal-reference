@@ -1,7 +1,14 @@
-# Local configuration and secrets (copy .env.example to .env)
+# Local configuration and secrets (each approach: copy .env.example to .env)
 .env
 *.pem
 *.key
+
+# Build output
+target/
+dependency-reduced-pom.xml
+*.class
+build/
+dist/
 
 # Python
 __pycache__/
@@ -10,16 +17,8 @@ __pycache__/
 .venv/
 venv/
 *.egg-info/
-build/
-dist/
 
-# Java / Maven (generated contract classes are rebuilt from contracts/schema)
-java/target/
-target/
-dependency-reduced-pom.xml
-*.class
-
-# IDEs and editors (VS Code, IntelliJ, Eclipse / VS Code Java extension)
+# IDEs and editors
 .vscode/
 .idea/
 *.iml
@@ -35,6 +34,12 @@ bin/
 .DS_Store
 Thumbs.db
 
-# Logs and generated documents
+# Logs
 *.log
+
+# Client source documents and call transcripts: reference only, never committed
+docs/
+
+# Generated documents, except each approach's design document
 *.pdf
+!*/design/*.pdf

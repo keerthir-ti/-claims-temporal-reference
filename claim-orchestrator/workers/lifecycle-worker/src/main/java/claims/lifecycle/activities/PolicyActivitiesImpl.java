@@ -1,7 +1,7 @@
 package claims.lifecycle.activities;
 
-import claims.contracts.v1.DecisionPolicy;
-import claims.contracts.v1.PolicyRequest;
+import claims.contracts.DecisionPolicy;
+import claims.contracts.PolicyRequest;
 import claims.runtime.Env;
 import claims.runtime.activities.PolicyActivities;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,6 +30,9 @@ public class PolicyActivitiesImpl implements PolicyActivities {
       int window = Env.getInt("RETRY_WINDOW_SECONDS", 0); // shorter window for local runs
       if (window > 0) {
         policy.setRetryWindowSeconds(window);
+      }
+      if (Env.getBool("PILOT_STP_ONLY", false)) { // pilot scope: Claims Lifecycle -> STP only
+        policy.setPilotStpOnly(true);
       }
       return policy.build();
     } catch (Exception e) {
