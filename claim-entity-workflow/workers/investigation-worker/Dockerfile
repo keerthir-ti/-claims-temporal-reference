@@ -7,7 +7,7 @@ RUN pip install --no-cache-dir "temporalio==1.34.0" "grpcio-tools==1.85.1" "cryp
       "python-json-logger>=3.2" "PyYAML>=6.0" "psycopg[binary]>=3.2"
 COPY contracts/claims /app/contracts/claims
 RUN mkdir -p /app/gen && python -m grpc_tools.protoc -I/app/contracts --python_out=/app/gen /app/contracts/claims/*.proto
-COPY worker-runtime/python/claims_runtime /app/claims_runtime
+COPY workers/ai-worker-common/claims_runtime /app/claims_runtime
 COPY workers/investigation-worker/investigation_worker /app/investigation_worker
 COPY config /app/config
 ENV PYTHONPATH=/app/gen:/app PYTHONUNBUFFERED=1

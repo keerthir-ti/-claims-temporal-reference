@@ -4,7 +4,7 @@ COMPOSE := docker compose
 SIM     := $(COMPOSE) --progress quiet run --rm --no-deps simulator
 
 .DEFAULT_GOAL := help
-.PHONY: help up down clean ps logs demo scenario tasks decide history archive loadtest test test-java test-python
+.PHONY: help up down clean ps logs demo scenario seed change tasks decide history archive loadtest verify test test-java test-python
 
 help: ## List targets
 	@grep -hE '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -35,6 +35,12 @@ demo: ## Run every scenario in mock-data/scenarios end to end and check the outc
 scenario: ## Run one scenario (N=02-injury-retriage)
 	$(SIM) run $(N)
 
+seed: ## File one claim from a scenario and stop there (N=05-large-payment-approval); prints the claim ID
+	$(SIM) seed $(N)
+
+change: ## Change a claim in ClaimsPro (ID=... W=injury_reported|documents_received|closed_in_claimspro|reopened|reassigned|payment_cancelled)
+	$(SIM) change $(ID) $(W)
+
 tasks: ## Open adjuster tasks
 	$(SIM) tasks
 
@@ -49,6 +55,12 @@ archive: ## Run the nightly archive now for claims closed more than DAYS days ag
 
 loadtest: ## Catastrophe surge: CLAIMS claims at RATE per second, all must close once with a complete record
 	$(SIM) load --claims $(or $(CLAIMS),100) --rate $(or $(RATE),10)
+
+verify: ## Full check: tests, start the stack, all scenarios, catastrophe load (CLAIMS=200 RATE=20)
+	$(MAKE) --no-print-directory test
+	$(MAKE) --no-print-directory up
+	$(MAKE) --no-print-directory demo
+	$(MAKE) --no-print-directory loadtest CLAIMS=$(or $(CLAIMS),200) RATE=$(or $(RATE),20)
 
 test: test-java test-python ## All tests
 

@@ -1,4 +1,4 @@
-"""Workflow-side helpers, same behaviour as the Java ones in worker-runtime/java:
+"""Workflow-side helpers, same behaviour as the Java ones in workers/worker-common:
 
 HistoryRecorder      business-history rows 1..n per run, ending with a closing row; each write awaited
 DecisionDesk  human decisions: adjuster task in ClaimsPro, validated Update, deadline and escalation

@@ -25,13 +25,13 @@ flowchart LR
   P -->|business history| DB[(Projection table)] -->|nightly archive| S3[(S3)]
 ```
 
-| Worker (deployment) | Language | Task queue | Runs |
-|---|---|---|---|
-| lifecycle-worker | Java | claims-lifecycle | ClaimLifecycleWorkflow, ArchiveWorkflow; projection, policy, archive activities |
-| triage-worker | Python | claims-tsa | TriageWorkflow; AI risk, triage rules |
-| investigation-worker | Python | claims-is | InvestigationWorkflow; AI coverage |
-| stp-worker as `stp` | Java | claims-stp | StpWorkflow, PaymentWorkflow; Comm Hub, Policy Gate, eClaims, flows |
-| stp-worker as `claimspro` | Java | claimspro-activities | Every ClaimsPro call, rate limit enforced on the queue |
+| Worker (deployment) | Task queue | Runs |
+|---|---|---|
+| lifecycle-worker | claims-lifecycle | ClaimLifecycleWorkflow, ArchiveWorkflow; projection, policy, archive activities |
+| triage-worker | claims-tsa | TriageWorkflow; AI risk, triage rules |
+| investigation-worker | claims-is | InvestigationWorkflow; AI coverage |
+| stp-worker as `stp` | claims-stp | StpWorkflow, PaymentWorkflow; Comm Hub, Policy Gate, eClaims, flows |
+| stp-worker as `claimspro` | claimspro-activities | Every ClaimsPro call, rate limit enforced on the queue |
 
 Why parent–child: each child has its own worker fleet (Python AI, Java core), its own owner and release cycle, or
 its own lifecycle (a payment must finish even if STP stops). The parent is the single owner of the stage and the
@@ -158,8 +158,8 @@ scaled on schedule-to-start latency; releases with a new `BUILD_ID`, ramped and 
 ```
 design/                 Design document
 contracts/              Protocol Buffers contracts; golden/ payloads tested in Java and Python
-workers/                lifecycle-worker, stp-worker, triage-worker, investigation-worker
-worker-runtime/         Runtime every worker builds on (java/, python/)
+workers/                lifecycle-worker, stp-worker, triage-worker, investigation-worker; worker-common and
+                        ai-worker-common are the libraries the workers build on
 config/                 Decision policy, triage rules, STP flows
 database/               Projection schema
 mock-data/              Mock application data and scenarios (remove with the mocks)

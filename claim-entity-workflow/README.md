@@ -23,13 +23,13 @@ flowchart LR
   C -->|business history| DB[(Projection table)] -->|nightly archive| S3[(S3)]
 ```
 
-| Worker (deployment) | Language | Task queue | Runs |
-|---|---|---|---|
-| lifecycle-worker | Java | claims-lifecycle | ClaimWorkflow, ArchiveWorkflow; projection, policy, archive activities |
-| triage-worker | Python | claims-tsa | `Ai.assessRisk`, `Triage.applyRules` (activities only) |
-| investigation-worker | Python | claims-is | `Ai.analyzeCoverage` (activities only) |
-| stp-worker as `stp` | Java | claims-stp | Comm Hub, Policy Gate, eClaims, flow activities (activities only) |
-| stp-worker as `claimspro` | Java | claimspro-activities | Every ClaimsPro call, rate limit enforced on the queue |
+| Worker (deployment) | Task queue | Runs |
+|---|---|---|
+| lifecycle-worker | claims-lifecycle | ClaimWorkflow, ArchiveWorkflow; projection, policy, archive activities |
+| triage-worker | claims-tsa | `Ai.assessRisk`, `Triage.applyRules` (activities only) |
+| investigation-worker | claims-is | `Ai.analyzeCoverage` (activities only) |
+| stp-worker as `stp` | claims-stp | Comm Hub, Policy Gate, eClaims, flow activities (activities only) |
+| stp-worker as `claimspro` | claimspro-activities | Every ClaimsPro call, rate limit enforced on the queue |
 
 Why one workflow: the tracks need separate workers and deployments, which activities on their own queues already
 give; the orchestration (stage, events, decisions, re-triage, payment) is one state machine for one claim. Temporal
@@ -166,8 +166,8 @@ Temporal UI locally: http://localhost:48233.
 ```
 design/                 Design document
 contracts/              Protocol Buffers contracts; golden/ payloads tested in Java and Python
-workers/                lifecycle-worker (ClaimWorkflow), stp-worker, triage-worker, investigation-worker
-worker-runtime/         Runtime every worker builds on (java/, python/)
+workers/                lifecycle-worker (ClaimWorkflow), stp-worker, triage-worker, investigation-worker; worker-common and
+                        ai-worker-common are the libraries the workers build on
 config/                 Decision policy, triage rules, STP flows
 database/               Projection schema
 mock-data/              Mock application data and scenarios (remove with the mocks)

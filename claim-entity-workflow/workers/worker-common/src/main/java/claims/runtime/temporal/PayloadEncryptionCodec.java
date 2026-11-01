@@ -16,7 +16,7 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
- * AES-256-GCM payload encryption, byte-compatible with the Python codec in worker-runtime/python.
+ * AES-256-GCM payload encryption, byte-compatible with the Python codec in workers/ai-worker-common.
  * Data = 12-byte nonce + ciphertext + 16-byte tag; the plaintext is the serialized original Payload.
  */
 public final class PayloadEncryptionCodec implements PayloadCodec {

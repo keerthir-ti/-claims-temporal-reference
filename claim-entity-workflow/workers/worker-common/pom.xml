@@ -3,12 +3,12 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <parent><groupId>claims.orchestrator</groupId><artifactId>claim-orchestrator</artifactId><version>1.0.0</version><relativePath>../../pom.xml</relativePath></parent>
-  <artifactId>worker-runtime</artifactId>
+  <parent><groupId>claims.entity</groupId><artifactId>claim-entity-workflow</artifactId><version>1.0.0</version><relativePath>../../pom.xml</relativePath></parent>
+  <artifactId>worker-common</artifactId>
   <properties><main.class>none</main.class></properties>
 
   <dependencies>
-    <dependency><groupId>claims.orchestrator</groupId><artifactId>contracts</artifactId></dependency>
+    <dependency><groupId>claims.entity</groupId><artifactId>contracts</artifactId></dependency>
     <dependency><groupId>io.temporal</groupId><artifactId>temporal-sdk</artifactId></dependency>
     <dependency><groupId>com.google.protobuf</groupId><artifactId>protobuf-java-util</artifactId></dependency>
     <dependency><groupId>com.fasterxml.jackson.dataformat</groupId><artifactId>jackson-dataformat-yaml</artifactId></dependency>

@@ -12,7 +12,7 @@
 
   <modules>
     <module>contracts</module>
-    <module>worker-runtime/java</module>
+    <module>workers/worker-common</module>
     <module>workers/lifecycle-worker</module>
     <module>workers/stp-worker</module>
   </modules>
@@ -29,7 +29,7 @@
   <dependencyManagement>
     <dependencies>
       <dependency><groupId>claims.entity</groupId><artifactId>contracts</artifactId><version>${project.version}</version></dependency>
-      <dependency><groupId>claims.entity</groupId><artifactId>worker-runtime</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>claims.entity</groupId><artifactId>worker-common</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>io.temporal</groupId><artifactId>temporal-sdk</artifactId><version>${temporal.version}</version></dependency>
       <dependency><groupId>io.temporal</groupId><artifactId>temporal-testing</artifactId><version>${temporal.version}</version></dependency>
       <dependency><groupId>com.google.protobuf</groupId><artifactId>protobuf-java</artifactId><version>${protobuf.version}</version></dependency>
